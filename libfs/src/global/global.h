@@ -25,8 +25,8 @@ void mlfs_setup(void);
 #define g_hdd_block_size_shift 22UL
 
 // # of blocks allocated to private log (for each LibFS process)
-//#define g_log_size 32768UL // (128 MB)
-#define g_log_size 262144UL // (1 GB)
+#define g_log_size 32768UL // (128 MB)
+//#define g_log_size 262144UL // (1 GB)
 //#define g_log_size 524288UL // (2 GB)
 //#define g_log_size 1310720UL // (5 GB)
 //#define g_log_size 131072UL
@@ -81,7 +81,7 @@ void mlfs_setup(void);
 #define SHM_SIZE (200 << 20) //200 MB
 #endif
 
-#define SHM_NAME "/mlfs_shm"
+#define SHM_NAME "~/backup/mlfs_shm"
 
 #define MLFS_SEED defined(DISTRIBUTED) && defined(SEED)
 #define MLFS_PASSIVE defined(DISTRIBUTED) && !defined(ACTIVE)

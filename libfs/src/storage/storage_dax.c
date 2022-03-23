@@ -5,7 +5,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include <libpmem.h>
+#include <sys/shm.h>
 
 #include "global/global.h"
 #include "global/util.h"
@@ -260,7 +260,7 @@ uint8_t *dax_init(uint8_t dev, char *dev_path)
 	pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	pthread_mutex_init(&mlfs_nvm_mutex, &attr);
 
-	fd = open(dev_path, O_RDWR);
+	fd = shm_open(dev_path, O_RDWR);
 	if (fd < 0) {
 		fprintf(stderr, "cannot open dax device %s\n", dev_path);
 		exit(-1);
@@ -352,11 +352,11 @@ int dax_write(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size)
 	addr_t addr = (addr_t)dax_addr[dev] + (blockno << g_block_size_shift);
 
 	//copy and flush data to pmem.
-	pmem_memmove_persist((void *)addr, buf, io_size);
+	//pmem_memmove_persist((void *)addr, buf, io_size);
 	//PERSISTENT_BARRIER();
 
-	//memmove(dax_addr[dev] + (blockno * g_block_size_bytes), buf, io_size);
-	//perfmodel_add_delay(0, io_size);
+	memmove(dax_addr[dev] + (blockno * g_block_size_bytes), buf, io_size);
+	perfmodel_add_delay(0, io_size);
 
 	mlfs_muffled("write block number %lu, address %lu size %u\n", 
 			blockno, (blockno * g_block_size_bytes), io_size);
@@ -370,11 +370,11 @@ int dax_write_unaligned(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offs
 	addr_t addr = (addr_t)dax_addr[dev] + (blockno << g_block_size_shift) + offset;
 
 	//copy and flush data to pmem.
-	pmem_memmove_persist((void *)addr, buf, io_size);
+	//pmem_memmove_persist((void *)addr, buf, io_size);
 	//PERSISTENT_BARRIER();
 	
-	//memmove(dax_addr[dev] + (blockno * g_block_size_bytes) + offset, buf, io_size);
-	//perfmodel_add_delay(0, io_size);
+	memmove(dax_addr[dev] + (blockno * g_block_size_bytes) + offset, buf, io_size);
+	perfmodel_add_delay(0, io_size);
 
 	mlfs_muffled("write block number %lu, address %lu size %u\n", 
 			blockno, (blockno * g_block_size_bytes) + offset, io_size);
@@ -567,11 +567,11 @@ int dax_write_opt(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size)
 #endif	
 	{
 		//copy and flush data to pmem.
-		pmem_memmove_persist((void *)addr, buf, io_size);
-		PERSISTENT_BARRIER();
+		//pmem_memmove_persist((void *)addr, buf, io_size);
+		//PERSISTENT_BARRIER();
 	}
-	//memmove(dax_addr[dev] + (blockno * g_block_size_bytes), buf, io_size);
-	//perfmodel_add_delay(0, io_size);
+	memmove(dax_addr[dev] + (blockno * g_block_size_bytes), buf, io_size);
+	perfmodel_add_delay(0, io_size);
 
 	mlfs_muffled("write(opt) block number %lu, address %lu size %u\n", 
 			blockno, (blockno * g_block_size_bytes), io_size);
@@ -591,12 +591,12 @@ int dax_write_opt_unaligned(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t 
 #endif	
 	{
 		//copy and flush data to pmem.
-		pmem_memmove_persist((void *)addr, buf, io_size);
+		//pmem_memmove_persist((void *)addr, buf, io_size);
 		//PERSISTENT_BARRIER();
 	}
 	
-	//memmove(dax_addr[dev] + (blockno * g_block_size_bytes) + offset, buf, io_size);
-	//perfmodel_add_delay(0, io_size);
+	memmove(dax_addr[dev] + (blockno * g_block_size_bytes) + offset, buf, io_size);
+	perfmodel_add_delay(0, io_size);
 
 	mlfs_muffled("write(opt) block number %lu, address %lu size %u\n", 
 			blockno, (blockno * g_block_size_bytes) + offset, io_size);

@@ -9,15 +9,11 @@ CXX=g++ -std=c++11
 ########
 LIBFS_DIR := $(CURDIR)/../../libfs
 KERNFS_DIR := $(CURDIR)/../
-NVML_DIR := $(abspath $(LIBFS_DIR)/lib/nvml/src)
-DPDK_DIR := $(abspath $(LIBFS_DIR)/lib/dpdk-16.07/x86_64-native-linuxapp-gcc)
-SPDK_DIR := $(abspath $(KERNFS_DIR)/lib/spdk)
-CUCKOO_DIR := $(abspath $(LIBFS_DIR)/lib/cuckoofilter)
 
-INCLUDES  := $(addprefix -I, .. . $(NVML_DIR)/include $(CUCKOO_DIR)/src)
+INCLUDES  := $(addprefix -I, .. .)
 
-LD_FLAGS = -lpthread -lm -L$(NVML_DIR)/nondebug/ -Wl,-rpath=$(abspath $(NVML_DIR)/nondebug) -lpmem -lrt
-LD_FLAGS_CXX = -lpthread -L$(NVML_DIR)/nondebug/ -Wl,-rpath=$(abspath $(NVML_DIR)/nondebug) -lpmem -lrt
+LD_FLAGS = -lpthread -lm -lrt
+LD_FLAGS_CXX = -lpthread -lrt
 #DEBUG = -g -O0
 #DEBUG = -g -Ofast
 DEBUG = -O3
@@ -27,7 +23,7 @@ DEBUG = -O3
 ########
 .PHONY: kernfs
 
-BIN := kernfs fifo_cli
+BIN := kernfs
 
 all: $(BIN)
 
@@ -35,10 +31,4 @@ clean:
 	rm -rf *.o $(BIN)
 
 kernfs: kernfs.c
-	$(CC) $^ $(DEBUG) -o $@ $(INCLUDES) -L../build -lkernfs $(LD_FLAGS) -Wl,--whole-archive $(SPDK_LIBS) -Wl,--no-whole-archive -luuid -lnuma 
-
-extent_test: extent_test.cc
-	$(CXX) -std=c++11 $(DEBUG) $^ -o $@ $(INCLUDES) -L../build -lkernfs $(LD_FLAGS_CXX) -DUSE_SLAB -Wl,-rpath=$(abspath ../build)
-
-fifo_cli: fifo_cli.c
-	$(CC) -o $@ $^
+	$(CC) $^ $(DEBUG) -o $@ $(INCLUDES) -L../build -lkernfs $(LD_FLAGS) -Wl,--no-whole-archive -luuid -lnuma 

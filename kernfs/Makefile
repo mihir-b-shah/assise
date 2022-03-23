@@ -24,21 +24,12 @@ HDER := $(foreach sdir, $(SRC_DIR), $(wildcard $(sdir)/*.h)) $(wildcard storage/
 ########
 #  Lib directories
 ########
-NVML_DIR := $(abspath $(LIBFS_DIR)/lib/nvml/src)
-DPDK_DIR := $(abspath $(LIBFS_DIR)/lib/dpdk-16.07/x86_64-native-linuxapp-gcc)
-SPDK_ROOT_DIR := $(abspath $(CURDIR)/lib/spdk)
-CUCKOO_FILTER_DIR := $(abspath $(LIBFS_DIR)/lib/cuckoofilter)
-CUCKOO_DIR := $(abspath $(LIBFS_DIR)/lib/libcuckoo)
-GLIB_DIR := $(abspath $(LIBFS_DIR)/lib/glib)
-#JEMALLOC_DIR := $(abspath $(LIBFS_DIR)/lib/jemalloc-4.5.0)
-STORAGE_ENGINE := $(wildcard $(LIBFS_DIR)/build/storage/*.o)
+LAIO_DIR := $(abspath $(LIBFS_DIR)/lib/libaio)
 RDMA_DIR := $(abspath $(LIBFS_DIR)/lib/rdma)
-RDMA_CORE_DIR := $(abspath $(LIBFS_DIR)/lib/rdma-core/build/include)
-RDMA_CORE_DIR_LIB := $(abspath $(LIBFS_DIR)/lib/rdma-core/build/lib)
 
-INCLUDES  := $(addprefix -I, . $(NVML_DIR)/include $(CUCKOO_DIR) $(CUCKOO_FILTER_DIR)/src $(GLIB_DIR)/ $(GLIB_DIR)/glib $(RDMA_DIR) $(RDMA_CORE_DIR) $(SPDK_ROOT_DIR)/include)
+INCLUDES  := $(addprefix -I, . $(LAIO_DIR) $(RDMA_DIR))
 
-LD_FLAGS = -lpthread -laio -lstdc++ -lm -L$(NVML_DIR)/nondebug/ -Wl,-rpath=$(abspath $(NVML_DIR)/nondebug) -lpmem -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -L$(RDMA_CORE_DIR_LIB) -Wl,-rpath=$(abspath $(RDMA_CORE_DIR_LIB)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(SPDK_ROOT_DIR) -Wl,-rpath=$(abspath $(SPDK_ROOT_DIR))
+LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio
 
 #MLFS_FLAGS = -DUSE_SLAB -DMLFS_INFO -DKERNFS
 MLFS_FLAGS = -DKERNFS
@@ -57,29 +48,14 @@ MLFS_FLAGS += -DBALLOC
 #MLFS_FLAGS += -DIOMERGE
 MLFS_FLAGS += -DCONCURRENT
 #MLFS_FLAGS += -DFCONCURRENT
-#MLFS_FLAGS += -DUSE_SSD
+MLFS_FLAGS += -DUSE_SSD
 #MLFS_FLAGS += -DUSE_HDD
-#MLFS_FLAGS += -DMIGRATION
+MLFS_FLAGS += -DMIGRATION
 #MLFS_FLAGS += -DEXPERIMENTAL
 
 #DEBUG = -g -O0
 #DEBUG = -g3 -Ofast
 DEBUG = -O3
-
-# only include SPDK if ENABLE_MEMCPY_OFFLOAD flag is set
-
-ifneq (,$(findstring -DENABLE_MEMCPY_OFFLOAD,$(MLFS_FLAGS)))
-
-include $(SPDK_ROOT_DIR)/mk/spdk.common.mk
-
-SPDK_LIBS += $(SPDK_ROOT_DIR)/build/lib/libspdk_ioat.a \
-		$(SPDK_ROOT_DIR)/build/lib/libspdk_util.a \
-		$(SPDK_ROOT_DIR)/build/lib/libspdk_log.a \
-		$(ENV_LIBS)
-
-include $(SPDK_ROOT_DIR)/mk/spdk.app.mk
-
-endif
 
 ########
 #  vpath and compile function for each file
@@ -118,7 +94,7 @@ $(BUILD_DIR):
 #  Targets
 ########
 filesystem: $(OBJ) $(OBJCPP) $(SRC) $(HDER)
-	$(CC) -shared $(DEBUG) -o build/libkernfs.so $(OBJ) $(OBJCPP) -Wl,--whole-archive $(SPDK_LIBS) -Wl,--no-whole-archive $(LD_FLAGS) $(MLFS_FLAGS)
+	$(CC) -shared $(DEBUG) -o build/libkernfs.so $(OBJ) $(OBJCPP) -Wl,--no-whole-archive $(LD_FLAGS) $(MLFS_FLAGS)
 
 ########
 #  Compile each source into an object

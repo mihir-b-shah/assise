@@ -1,17 +1,3 @@
 
-What I need to change, dependencies wise:
-
-libaio -> we got it built/passing tests
-libpmem -> replace with shm operations
-libsyscall_intercept_hook_point -> no interception, just call the posix library directly. Maybe could work though.
-linux/rbtree- just find these headers and patch, hopefully not too bad.
-linux/seqlock
-
-- rdmalib :)
-
-Of course, change the Makefiles to remove unnecessary dependencies.
-
 Other changes
 - ip's should be dynamically configurable.
-
-The blocks are stored in files in /backup/mlfs_hdd.

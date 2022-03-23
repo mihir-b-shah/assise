@@ -14,7 +14,7 @@ CC=gcc
 #  List of all modules' directories
 ########
 MODULES   := io concurrency config filesystem global ds log mkfs \
-	mlfs shim posix storage distributed experimental
+	mlfs posix storage distributed experimental
 
 ########
 #  List of all modules' directories
@@ -38,15 +38,12 @@ OBJCPP    := $(patsubst src/%.cpp,build/%.o,$(SRCCPP))
 ########
 #  Lib directories
 ########
-NVML_DIR := $(abspath $(CURDIR)/lib/nvml/src)
-JEMALLOC_DIR := $(abspath $(CURDIR)/lib/jemalloc-4.5.0)
+LAIO_DIR := $(abspath $(CURDIR)/lib/libaio)
 RDMA_DIR := $(abspath $(CURDIR)/lib/rdma)
-RDMA_CORE_DIR := $(abspath $(CURDIR)/lib/rdma-core)
-SYSCALL_INTERCEPT_DIR := $(abspath $(CURDIR)/lib/syscall_intercept/install/)
 
-INCLUDES  := $(addprefix -I,src/ $(RDMA_CORE_DIR)/build/include $(RDMA_DIR) $(NVML_DIR)/include $(SYSCALL_INTERCEPT_DIR)/include)
+INCLUDES  := $(addprefix -I,src/ $(RDMA_DIR) $(LAIO_DIR))
 
-LD_FLAGS = -lpthread -laio -lstdc++ -lm -lnuma -L$(NVML_DIR)/nondebug/ -Wl,-rpath=$(abspath $(NVML_DIR)/nondebug) -lpmem -lrt -L$(RDMA_CORE_DIR)/build/lib -Wl,-rpath=$(RDMA_CORE_DIR)/build/lib -L$(RDMA_DIR) -lrdmacm -libverbs -lpthread -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma #-Wl,-fuse-ld=gold
+LD_FLAGS = -lpthread -lstdc++ -lm -lnuma -lrt -L$(RDMA_DIR) -lrdmacm -libverbs -lpthread -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio
 
 #MLFS_FLAGS = -DUSE_SLAB -DLIBFS -DMLFS_INFO
 MLFS_FLAGS = -DLIBFS
@@ -66,7 +63,7 @@ MLFS_FLAGS += -DLAZY_SURRENDER
 #MLFS_FLAGS += -DCOALESCING
 MLFS_FLAGS += -DINVALIDATION
 MLFS_FLAGS += -DKLIB_HASH
-#MLFS_FLAGS += -DUSE_SSD
+MLFS_FLAGS += -DUSE_SSD
 #MLFS_FLAGS += -DUSE_HDD
 #MLFS_FLAGS += -DMLFS_LOG
 
@@ -113,7 +110,7 @@ $(BUILD_DIR):
 #build/libmlfs.a: $(OBJ)
 libmlfs: $(OBJ) $(OBJCPP)
 	ar cr build/libmlfs.a $(OBJ) $(OBJCPP)
-	$(CC) -shared $(DEBUG) -o build/libmlfs.so $(OBJ) $(OBJCPP) $(LD_FLAGS) -DLIBFS $(MLFS_FLAGS) -L$(JEMALLOC_DIR)/lib -Wl,-rpath=$(abspath $(JEMALLOC_DIR)/lib) -ljemalloc -L$(SYSCALL_INTERCEPT_DIR)/lib -Wl,-rpath=$(abspath $(SYSCALL_INTERCEPT_DIR)/lib) -lsyscall_intercept
+	$(CC) -shared $(DEBUG) -o build/libmlfs.so $(OBJ) $(OBJCPP) $(LD_FLAGS) -DLIBFS $(MLFS_FLAGS)
 
 
 mkfs: $(OBJ) libmlfs mkfs.c
