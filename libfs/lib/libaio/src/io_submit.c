@@ -17,7 +17,7 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
 #include <errno.h>
-#include <libaio.h>
+#include "libaio.h"
 #include "syscall.h"
 
-io_syscall3(int, io_submit, io_submit, io_context_t, ctx, long, nr, struct iocb **, iocbs)
+io_syscall3(int, laio_io_submit, io_submit, io_context_t, ctx, long, nr, struct iocb **, iocbs)

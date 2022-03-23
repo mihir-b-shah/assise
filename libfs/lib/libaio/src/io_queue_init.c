@@ -16,18 +16,18 @@
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <libaio.h>
+#include "libaio.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
 
 #include "syscall.h"
 
-int io_queue_init(int maxevents, io_context_t *ctxp)
+int laio_io_queue_init(int maxevents, io_context_t *ctxp)
 {
 	if (maxevents > 0) {
 		*ctxp = NULL;
-		return io_setup(maxevents, ctxp);
+		return laio_io_setup(maxevents, ctxp);
 	}
 	return -EINVAL;
 }

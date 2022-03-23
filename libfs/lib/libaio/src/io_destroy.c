@@ -17,7 +17,7 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
 #include <errno.h>
-#include <libaio.h>
+#include "libaio.h"
 #include "syscall.h"
 
-io_syscall1(int, io_destroy, io_destroy, io_context_t, ctx)
+io_syscall1(int, laio_io_destroy, io_destroy, io_context_t, ctx)

@@ -150,18 +150,18 @@ struct io_event {
 typedef void (*io_callback_t)(io_context_t ctx, struct iocb *iocb, long res, long res2);
 
 /* library wrappers */
-extern int io_queue_init(int maxevents, io_context_t *ctxp);
+extern int laio_io_queue_init(int maxevents, io_context_t *ctxp);
 /*extern int io_queue_grow(io_context_t ctx, int new_maxevents);*/
-extern int io_queue_release(io_context_t ctx);
+extern int laio_io_queue_release(io_context_t ctx);
 /*extern int io_queue_wait(io_context_t ctx, struct timespec *timeout);*/
-extern int io_queue_run(io_context_t ctx);
+extern int laio_io_queue_run(io_context_t ctx);
 
 /* Actual syscalls */
-extern int io_setup(int maxevents, io_context_t *ctxp);
-extern int io_destroy(io_context_t ctx);
-extern int io_submit(io_context_t ctx, long nr, struct iocb *ios[]);
-extern int io_cancel(io_context_t ctx, struct iocb *iocb, struct io_event *evt);
-extern int io_getevents(io_context_t ctx_id, long min_nr, long nr, struct io_event *events, struct timespec *timeout);
+extern int laio_io_setup(int maxevents, io_context_t *ctxp);
+extern int laio_io_destroy(io_context_t ctx);
+extern int laio_io_submit(io_context_t ctx, long nr, struct iocb *ios[]);
+extern int laio_io_cancel(io_context_t ctx, struct iocb *iocb, struct io_event *evt);
+extern int laio_io_getevents(io_context_t ctx_id, long min_nr, long nr, struct io_event *events, struct timespec *timeout);
 
 
 static inline void io_set_callback(struct iocb *iocb, io_callback_t cb)
@@ -252,7 +252,7 @@ static inline int io_poll(io_context_t ctx, struct iocb *iocb, io_callback_t cb,
 {
         io_prep_poll(iocb, fd, events);
         io_set_callback(iocb, cb);
-        return io_submit(ctx, 1, &iocb);
+        return laio_io_submit(ctx, 1, &iocb);
 }
 
 static inline void io_prep_fsync(struct iocb *iocb, int fd)
@@ -267,7 +267,7 @@ static inline int io_fsync(io_context_t ctx, struct iocb *iocb, io_callback_t cb
 {
 	io_prep_fsync(iocb, fd);
 	io_set_callback(iocb, cb);
-	return io_submit(ctx, 1, &iocb);
+	return laio_io_submit(ctx, 1, &iocb);
 }
 
 static inline void io_prep_fdsync(struct iocb *iocb, int fd)
@@ -282,7 +282,7 @@ static inline int io_fdsync(io_context_t ctx, struct iocb *iocb, io_callback_t c
 {
 	io_prep_fdsync(iocb, fd);
 	io_set_callback(iocb, cb);
-	return io_submit(ctx, 1, &iocb);
+	return laio_io_submit(ctx, 1, &iocb);
 }
 
 static inline void io_set_eventfd(struct iocb *iocb, int eventfd)

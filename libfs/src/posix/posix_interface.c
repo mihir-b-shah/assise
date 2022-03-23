@@ -863,3 +863,8 @@ int mlfs_posix_fcntl(int fd, int cmd, void *arg)
 #ifdef __cplusplus
 }
 #endif
+
+static __attribute__((constructor)) void init(void){
+  init_fs();
+  atexit(shutdown_fs);
+}

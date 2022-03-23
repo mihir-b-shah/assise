@@ -16,19 +16,19 @@
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <libaio.h>
+#include "libaio.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
 
-int io_queue_run(io_context_t ctx)
+int laio_io_queue_run(io_context_t ctx)
 {
 	static struct timespec timeout = { 0, 0 };
 	struct io_event event;
 	int ret;
 
 	/* FIXME: batch requests? */
-	while (1 == (ret = io_getevents(ctx, 0, 1, &event, &timeout))) {
+	while (1 == (ret = laio_io_getevents(ctx, 0, 1, &event, &timeout))) {
 		io_callback_t cb = (io_callback_t)event.data;
 		struct iocb *iocb = event.obj;
 

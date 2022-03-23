@@ -16,7 +16,7 @@
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <libaio.h>
+#include "libaio.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <time.h>
@@ -39,7 +39,7 @@ struct aio_ring {
 	unsigned        header_length;  /* size of aio_ring */
 };
 
-int io_getevents_0_4(io_context_t ctx, long min_nr, long nr, struct io_event * events, struct timespec * timeout)
+int laio_io_getevents(io_context_t ctx, long min_nr, long nr, struct io_event * events, struct timespec * timeout)
 {
 	struct aio_ring *ring;
 	ring = (struct aio_ring*)ctx;
@@ -53,5 +53,3 @@ int io_getevents_0_4(io_context_t ctx, long min_nr, long nr, struct io_event * e
 do_syscall:	
 	return __io_getevents_0_4(ctx, min_nr, nr, events, timeout);
 }
-
-DEFSYMVER(io_getevents_0_4, io_getevents, 0.4)

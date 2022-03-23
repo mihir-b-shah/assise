@@ -24,7 +24,7 @@ HDER := $(foreach sdir, $(SRC_DIR), $(wildcard $(sdir)/*.h)) $(wildcard storage/
 ########
 #  Lib directories
 ########
-LAIO_DIR := $(abspath $(LIBFS_DIR)/lib/libaio)
+LAIO_DIR := $(abspath $(LIBFS_DIR)/lib/libaio/src)
 RDMA_DIR := $(abspath $(LIBFS_DIR)/lib/rdma)
 
 INCLUDES  := $(addprefix -I, . $(LAIO_DIR) $(RDMA_DIR))

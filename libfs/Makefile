@@ -38,7 +38,7 @@ OBJCPP    := $(patsubst src/%.cpp,build/%.o,$(SRCCPP))
 ########
 #  Lib directories
 ########
-LAIO_DIR := $(abspath $(CURDIR)/lib/libaio)
+LAIO_DIR := $(abspath $(CURDIR)/lib/libaio/src)
 RDMA_DIR := $(abspath $(CURDIR)/lib/rdma)
 
 INCLUDES  := $(addprefix -I,src/ $(RDMA_DIR) $(LAIO_DIR))

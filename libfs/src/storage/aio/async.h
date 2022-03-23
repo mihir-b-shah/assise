@@ -94,7 +94,7 @@ namespace AIO {
       borrowed_cb->data = sio.get(); // establish link
       this->submitted_ios_.emplace(std::piecewise_construct, std::forward_as_tuple(sio->submission_timestamp), std::forward_as_tuple(std::move(sio)));
       this->events_.resize(this->submitted_ios_.size());
-      int result = io_submit(this->ctx_, 1, &borrowed_cb);
+      int result = laio_io_submit(this->ctx_, 1, &borrowed_cb);
       static_cast<SubmittedIO *>(borrowed_cb->data)->completed_timestamp = asm_rdtscp();
       if (result >= 0) {
         assert(result == 1);
@@ -156,7 +156,7 @@ namespace AIO {
 
    public:
     explicit AIO(int fd, size_t block_size) : fd_(fd), block_size_(block_size), ctx_(nullptr), cache_(2, block_size) {
-      int result = io_setup(max_queue_size, &this->ctx_);
+      int result = laio_io_setup(max_queue_size, &this->ctx_);
       if (result < 0) {
         std::cout << "result " << result << std::endl;
         // panic
@@ -171,7 +171,7 @@ namespace AIO {
       std::cout << "uncached n " << uncached_n_ << " total " << uncached_read_total_ << ":" << (double) uncached_tsc_ / uncached_read_total_ << " tsc " << uncached_tsc_ << ":" << (double) uncached_tsc_ / uncached_n_ << std::endl;
       std::cout << "read n " << read_n_ << " total " << read_total_ << ":" << (double) read_tsc_ / read_total_ << " tsc " << read_tsc_ << ":" << (double) read_tsc_ / read_n_ << std::endl;
 #endif
-      io_destroy(this->ctx_);
+      laio_io_destroy(this->ctx_);
     }
 
 
@@ -276,7 +276,7 @@ namespace AIO {
       }
       this->events_.clear();
       this->events_.resize(this->submitted_ios_.size());
-      int num_events = io_getevents(this->ctx_, std::min(min_nr, this->submitted_ios_.size()), this->submitted_ios_.size() /* max_nr */, this->events_.data(), timeout);
+      int num_events = laio_io_getevents(this->ctx_, std::min(min_nr, this->submitted_ios_.size()), this->submitted_ios_.size() /* max_nr */, this->events_.data(), timeout);
       if (num_events < 0) {
         std::cout << "poll failed " << num_events << std::endl;
         // panic

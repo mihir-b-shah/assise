@@ -260,7 +260,7 @@ uint8_t *dax_init(uint8_t dev, char *dev_path)
 	pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
 	pthread_mutex_init(&mlfs_nvm_mutex, &attr);
 
-	fd = shm_open(dev_path, O_RDWR);
+	fd = shm_open(dev_path, O_CREAT | O_RDWR, ALLPERMS);
 	if (fd < 0) {
 		fprintf(stderr, "cannot open dax device %s\n", dev_path);
 		exit(-1);
@@ -652,6 +652,7 @@ void dax_exit(uint8_t dev)
 	ioat_exit(dev);
 #endif
 	munmap(dax_addr[dev], dev_size[dev]);
+  shm_unlink("~/backup/dax0.0");    // FIXME- hardcoding!
 
 	return;
 }

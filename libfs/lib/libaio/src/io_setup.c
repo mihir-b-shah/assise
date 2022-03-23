@@ -17,7 +17,7 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
 #include <errno.h>
-#include <libaio.h>
+#include "libaio.h"
 #include "syscall.h"
 
-io_syscall2(int, io_setup, io_setup, int, maxevents, io_context_t *, ctxp)
+io_syscall2(int, laio_io_setup, io_setup, int, maxevents, io_context_t *, ctxp)

@@ -16,12 +16,12 @@
    License along with this library; if not, write to the Free Software
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
-#include <libaio.h>
+#include "libaio.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
 
-int io_queue_release(io_context_t ctx)
+int laio_io_queue_release(io_context_t ctx)
 {
-	return io_destroy(ctx);
+	return laio_io_destroy(ctx);
 }
