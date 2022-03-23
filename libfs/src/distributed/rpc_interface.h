@@ -28,19 +28,9 @@ static char* local_intf = "lo";
 
 // Replica IP Mappings --------------------------------------------
 
-static struct peer_id hot_replicas[g_n_hot_rep] = {
-	{ .ip = "127.0.0.1", .role = HOT_REPLICA, .type = KERNFS_PEER},
-//	{ .ip = "13.13.13.7", .role = HOT_REPLICA, .type = KERNFS_PEER},
-};
-
-
-static struct peer_id hot_backups[g_n_hot_bkp] = {
-//	{ .ip = "172.17.15.4", .role = HOT_BACKUP, .type = KERNFS_PEER},
-};
-
-static struct peer_id cold_backups[g_n_cold_bkp] = {
-//	{ .ip = "172.17.15.6", .role = COLD_BACKUP, .type = KERNFS_PEER},
-};
+extern struct peer_id* hot_replicas;
+extern struct peer_id* hot_backups;
+extern struct peer_id* cold_backups;
 
 static struct peer_id external_replicas[g_n_ext_rep + 1] = {
 //	{ .ip = "172.17.15.10", .role = LOCAL_NODE, .type = KERNFS_PEER, .namespace_id = "sdp5", .inum_prefix = (1<<31) },

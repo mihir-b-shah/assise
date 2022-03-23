@@ -1,5 +1,9 @@
 #ifdef DISTRIBUTED
 
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+
 #include "io/device.h"
 #include "io/block_io.h"
 #include "distributed/peer.h"
@@ -307,6 +311,49 @@ void print_peer_arrays()
 	{
 		mlfs_printf("peer[%d]: pointer %p ip %s pid %u\n", i, g_peers[i], g_peers[i]->ip, g_peers[i]->pid);
 	}
+}
+
+void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer_id** cbs){
+  // setup ip addresses of replicas.
+  FILE* f = fopen("~/assise/replicas.conf", "r");
+  char ip_buf[20];
+  char role_buf[10];
+
+  hot_replicas = calloc(g_n_hot_rep, sizeof(struct peer_id));
+  *hrs = hot_replicas;
+  hot_backups = calloc(g_n_hot_bkp, sizeof(struct peer_id));
+  *hbs = hot_backups;
+  cold_backups = calloc(g_n_cold_bkp, sizeof(struct peer_id));
+  *cbs = cold_backups;
+  int i_hr = 0, i_hb = 0, i_cb = 0;
+
+  while(fscanf(f, "%s", ip_buf) != EOF){
+    assert(fscanf(f, "%s", role_buf) != EOF);
+
+    struct peer_id* peer;
+    if(strcmp(role_buf, "HOT_REPL") == 0){
+      peer = &hot_replicas[i_hr++];
+      peer->role = HOT_REPLICA;
+      assert(i_hr < g_n_hot_rep);
+    } else if(strcmp(role_buf, "HOT_BAK") == 0){
+      peer = &hot_backups[i_hb++];
+      peer->role = HOT_BACKUP;
+      assert(i_hb < g_n_hot_bkp);
+    } else if(strcmp(role_buf, "COLD_BAK") == 0){
+      peer = &cold_backups[i_cb++];
+      peer->role = COLD_BACKUP;
+      assert(i_cb < g_n_cold_bkp);
+    } else {
+      assert("Undefined type of replica role.\n");
+    }
+
+    strncpy(peer->ip, ip_buf, INET_ADDRSTRLEN);
+    peer->type = KERNFS_PEER;
+  }
+  
+  // forget about freeing these arrays.
+
+  fclose(f);
 }
 
 #endif

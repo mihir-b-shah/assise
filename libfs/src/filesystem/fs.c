@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -334,9 +335,14 @@ static void locks_init(void)
 	pthread_rwlock_init(g_debug_rwlock, &rwlattr);
 }
 
+// defined in distributed/rpc_interface.h
+struct peer_id* hot_replicas = NULL;
+struct peer_id* hot_backups = NULL;
+struct peer_id* cold_backups = NULL;
+
 #ifdef DISTRIBUTED
 static void mlfs_rpc_init(void) {
-	
+
 	//set memory regions to be registered by rdma device
 	int n_regions = 2;
 	struct mr_context *mrs = (struct mr_context *) mlfs_zalloc(sizeof(struct mr_context) * n_regions);
@@ -399,6 +405,8 @@ static void mlfs_rpc_init(void) {
 
 void init_fs(void)
 {
+  setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
+
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
 #endif

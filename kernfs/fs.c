@@ -21,6 +21,7 @@
 #include "migrate.h"
 
 #ifdef DISTRIBUTED
+#include "distributed/peer.h"
 #include "distributed/rpc_interface.h"
 #include "distributed/replication.h"
 #endif
@@ -2073,8 +2074,15 @@ void locks_init(void)
 #endif
 }
 
+// defined in distributed/rpc_interface.h
+struct peer_id* hot_replicas = NULL;
+struct peer_id* hot_backups = NULL;
+struct peer_id* cold_backups = NULL;
+
 void init_fs(void)
 {
+  setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
+
 	int i;
 	const char *perf_profile;
 

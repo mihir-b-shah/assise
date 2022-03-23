@@ -104,6 +104,8 @@ void set_peer_id(struct peer_id *peer);
 void clear_peer_id(struct peer_id *peer);
 void print_peer_arrays();
 
+void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer_id** cbs);
+
 #endif
 
 #endif
