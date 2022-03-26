@@ -315,7 +315,7 @@ void print_peer_arrays()
 
 void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer_id** cbs){
   // setup ip addresses of replicas.
-  FILE* f = fopen("~/assise/replicas.conf", "r");
+  FILE* f = fopen("/tmp/mihirs_bak/replicas.conf", "r");
   char ip_buf[20];
   char role_buf[10];
 
@@ -334,15 +334,15 @@ void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer
     if(strcmp(role_buf, "HOT_REPL") == 0){
       peer = &hot_replicas[i_hr++];
       peer->role = HOT_REPLICA;
-      assert(i_hr < g_n_hot_rep);
+      assert(i_hr <= g_n_hot_rep);
     } else if(strcmp(role_buf, "HOT_BAK") == 0){
       peer = &hot_backups[i_hb++];
       peer->role = HOT_BACKUP;
-      assert(i_hb < g_n_hot_bkp);
+      assert(i_hb <= g_n_hot_bkp);
     } else if(strcmp(role_buf, "COLD_BAK") == 0){
       peer = &cold_backups[i_cb++];
       peer->role = COLD_BACKUP;
-      assert(i_cb < g_n_cold_bkp);
+      assert(i_cb <= g_n_cold_bkp);
     } else {
       assert("Undefined type of replica role.\n");
     }

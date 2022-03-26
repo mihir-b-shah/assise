@@ -56,6 +56,7 @@ void device_init(void)
 		if (i == g_hdd_dev)
 			continue;
 #endif
+
 		if (i == g_root_dev) {
 			g_bdev[i] = bdev_alloc(i, 12);
 			g_bdev[i]->storage_engine = &storage_dax;

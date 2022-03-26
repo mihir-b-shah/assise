@@ -21,7 +21,7 @@ uint8_t *hdd_init(uint8_t dev, char *dev_path)
 		}
 	}
 
-	fd = open(dev_path, O_RDWR, 0600);
+	fd = open(dev_path, O_CREAT | O_RDWR, 0600);
 	if (fd < 0) {
 		perror("cannot open the storage file\n");
 		exit(-1);

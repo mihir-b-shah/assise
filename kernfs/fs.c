@@ -2082,6 +2082,7 @@ struct peer_id* cold_backups = NULL;
 void init_fs(void)
 {
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
+  printf("setup replica array.\n");
 
 	int i;
 	const char *perf_profile;

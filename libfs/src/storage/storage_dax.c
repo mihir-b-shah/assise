@@ -9,6 +9,7 @@
 
 #include "global/global.h"
 #include "global/util.h"
+#include "io/block_io.h"
 #include "mlfs/mlfs_user.h"
 #include "storage/storage.h"
 #include "concurrency/synchronization.h"
@@ -265,6 +266,8 @@ uint8_t *dax_init(uint8_t dev, char *dev_path)
 		fprintf(stderr, "cannot open dax device %s\n", dev_path);
 		exit(-1);
 	}
+
+  ftruncate(fd, dev_size[dev]);
 
 #ifdef ENABLE_MEMCPY_OFFLOAD
 	// FIXME: make sure this is called only once (relevant if we use multiple dax devices)
@@ -652,7 +655,7 @@ void dax_exit(uint8_t dev)
 	ioat_exit(dev);
 #endif
 	munmap(dax_addr[dev], dev_size[dev]);
-  shm_unlink("~/backup/dax0.0");    // FIXME- hardcoding!
+  shm_unlink(g_dev_path[g_root_dev]);    // FIXME- hardcoding!
 
 	return;
 }

@@ -1,4 +1,4 @@
-#! /usr/bin/sudo /bin/bash
+#! /bin/bash
 
 numactl -N0 -m0 ../../libfs/bin/mkfs.mlfs 1
 #numactl -N0 -m0 ../../libfs/bin/mkfs.mlfs 2
