@@ -63,10 +63,12 @@ void device_init(void)
 			g_bdev[i]->map_base_addr =
 				g_bdev[i]->storage_engine->init(i, g_dev_path[i]);
 		} else if (i == g_hdd_dev || i == g_ssd_dev) {
+      printf("Trying to initialize AIO engine.\n");
 			g_bdev[i] = bdev_alloc(i, 12);
 			g_bdev[i]->storage_engine = &storage_aio;
 			g_bdev[i]->map_base_addr = NULL;
 			g_bdev[i]->storage_engine->init(i, g_dev_path[i]);
+      printf("Initialized AIO engine- afterwards.\n");
 		}
 		// libfs logs starting from devid 4
 		else {

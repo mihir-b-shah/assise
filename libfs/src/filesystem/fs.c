@@ -405,7 +405,9 @@ static void mlfs_rpc_init(void) {
 
 void init_fs(void)
 {
+  printf("Starting...\n");
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
+  printf("Replica array.\n");
 
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
@@ -433,8 +435,12 @@ void init_fs(void)
 
 		for (i = 0; i < g_n_devices + 1; i++)
 			sb[i] = (struct super_block *)mlfs_zalloc(sizeof(struct super_block));
+    
+    printf("Starting libfs device init.\n");
 
 		device_init();
+
+    printf("Finished libfs device init.\n");
 
 		debug_init();
 

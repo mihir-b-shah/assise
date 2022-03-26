@@ -9,8 +9,7 @@ RDMA_DIR = $(CURDIR)/../lib/rdma
 LIBFS=$(LIBFS_DIR)/libmlfs.a
 
 INCLUDES= $(LIBFS_DIR)/../src -I$(RDMA_DIR)
-DAX_OBJ = ../build/storage/storage_dax.o
-STG_OBJ = ../build/storage/storage.o
+STG_OBJS = $(wildcard ../build/storage/*.o)
 
 CFLAGS=-I$(INCLUDES)
 
@@ -73,7 +72,7 @@ mkdir_test: mkdir_test.c time_stat.o
 
 iotest: iotest.cc time_stat.o thread.cc
 	$(CXX) -std=c++11 -g -Ofast -o $@ $^  -I$(INCLUDES) -L$(LIBFS_DIR) -lmlfs  -L$(RDMA_DIR) -DMLFS $(CFLAGS) $(LDFLAGS)
-	$(CXX) -std=c++11 -g -Ofast -o $(addsuffix .normal, $@) $^ $(CFLAGS) $(STG_OBJ) $(DAX_OBJ) -lpthread -lm -lrt
+	$(CXX) -std=c++11 -g -Ofast -o $(addsuffix .normal, $@) $^ $(CFLAGS) $(STG_OBJS) -lpthread -lm -lrt
 
 fwrite_fread: fwrite_fread.cc time_stat.o thread.cc
 	$(CXX) -std=c++11 -g -Ofast -o $@ $^  -I$(INCLUDES) -L$(LIBFS_DIR) -lmlfs -L$(RDMA_DIR)  -DMLFS $(CFLAGS) $(LDFLAGS) 

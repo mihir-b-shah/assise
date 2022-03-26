@@ -30,7 +30,7 @@
 #include "thread.h"
 
 #ifdef MLFS
-const char *test_dir_prefix = "/tmp/mihirs_bak";
+const char *test_dir_prefix = "/tmp/mihirs_bak/mlfs";
 #else
 const char *test_dir_prefix = "./pmem";
 //const char test_dir_prefix[] = "./ssd";
