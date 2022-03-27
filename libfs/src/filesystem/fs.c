@@ -88,26 +88,26 @@ void show_libfs_stats(void)
 	// For some reason, floating point operation causes segfault in filebench 
 	// worker thread.
 	//printf("posix rename	  : %.3f ms\n", tsc_to_ms(g_perf_stats.posix_rename_tsc));
-	printf("wait on digest    : %.3f ms\n", tsc_to_ms(g_perf_stats.digest_wait_tsc));
-	printf("inode allocation  : %.3f ms\n", tsc_to_ms(g_perf_stats.ialloc_tsc));
-	printf("bcache search     : %.3f ms\n", tsc_to_ms(g_perf_stats.bcache_search_tsc));
-	printf("search l0 tree    : %.3f ms\n", tsc_to_ms(g_perf_stats.l0_search_tsc));
-	printf("search lsm tree   : %.3f ms\n", tsc_to_ms(g_perf_stats.tree_search_tsc));
-	printf("log commit        : %.3f ms\n", tsc_to_ms(g_perf_stats.log_commit_tsc));
-	printf("  log writes      : %.3f ms\n", tsc_to_ms(g_perf_stats.log_write_tsc));
-	printf("  loghdr writes   : %.3f ms\n", tsc_to_ms(g_perf_stats.loghdr_write_tsc));
-	printf("read data blocks  : %.3f ms\n", tsc_to_ms(g_perf_stats.read_data_tsc));
-	printf("wait on read rpc  : %.3f ms\n", tsc_to_ms(g_perf_stats.read_rpc_wait_tsc));
-	printf("directory search  : %.3f ms\n", tsc_to_ms(g_perf_stats.dir_search_tsc));
-	printf("temp_debug        : %.3f ms\n", tsc_to_ms(g_perf_stats.tmp_tsc));
-	printf("rsync coalesce    : %.3f ms\n", tsc_to_ms(g_perf_stats.coalescing_log_time_tsc));
-	printf("rsync interval    : %.3f ms\n", tsc_to_ms(g_perf_stats.calculating_sync_interval_time_tsc));
-	printf("rdma write        : %.3f ms\n", tsc_to_ms(g_perf_stats.rdma_write_time_tsc));
-	printf("lease rpc wait    : %.3f ms\n", tsc_to_ms(g_perf_stats.lease_rpc_wait_tsc));
-	printf("lease lpc wait    : %.3f ms\n", tsc_to_ms(g_perf_stats.lease_lpc_wait_tsc));
-	printf("   contention     : %.3f ms\n", tsc_to_ms(g_perf_stats.local_contention_tsc));
-	printf("   digestion      : %.3f ms\n", tsc_to_ms(g_perf_stats.local_digestion_tsc));
-	printf("lease revoke wait : %.3f ms\n", tsc_to_ms(g_perf_stats.lease_revoke_wait_tsc));
+	printf("wait on digest    : %.6f ms\n", tsc_to_ms(g_perf_stats.digest_wait_tsc));
+	printf("inode allocation  : %.6f ms\n", tsc_to_ms(g_perf_stats.ialloc_tsc));
+	printf("bcache search     : %.6f ms\n", tsc_to_ms(g_perf_stats.bcache_search_tsc));
+	printf("search l0 tree    : %.6f ms\n", tsc_to_ms(g_perf_stats.l0_search_tsc));
+	printf("search lsm tree   : %.6f ms\n", tsc_to_ms(g_perf_stats.tree_search_tsc));
+	printf("log commit        : %.6f ms\n", tsc_to_ms(g_perf_stats.log_commit_tsc));
+	printf("  log writes      : %.6f ms\n", tsc_to_ms(g_perf_stats.log_write_tsc));
+	printf("  loghdr writes   : %.6f ms\n", tsc_to_ms(g_perf_stats.loghdr_write_tsc));
+	printf("read data blocks  : %.6f ms\n", tsc_to_ms(g_perf_stats.read_data_tsc));
+	printf("wait on read rpc  : %.6f ms\n", tsc_to_ms(g_perf_stats.read_rpc_wait_tsc));
+	printf("directory search  : %.6f ms\n", tsc_to_ms(g_perf_stats.dir_search_tsc));
+	printf("temp_debug        : %.6f ms\n", tsc_to_ms(g_perf_stats.tmp_tsc));
+	printf("rsync coalesce    : %.6f ms\n", tsc_to_ms(g_perf_stats.coalescing_log_time_tsc));
+	printf("rsync interval    : %.6f ms\n", tsc_to_ms(g_perf_stats.calculating_sync_interval_time_tsc));
+	printf("rdma write        : %.6f ms\n", tsc_to_ms(g_perf_stats.rdma_write_time_tsc));
+	printf("lease rpc wait    : %.6f ms\n", tsc_to_ms(g_perf_stats.lease_rpc_wait_tsc));
+	printf("lease lpc wait    : %.6f ms\n", tsc_to_ms(g_perf_stats.lease_lpc_wait_tsc));
+	printf("   contention     : %.6f ms\n", tsc_to_ms(g_perf_stats.local_contention_tsc));
+	printf("   digestion      : %.6f ms\n", tsc_to_ms(g_perf_stats.local_digestion_tsc));
+	printf("lease revoke wait : %.6f ms\n", tsc_to_ms(g_perf_stats.lease_revoke_wait_tsc));
 	printf("n_rsync           : %u\n", g_perf_stats.n_rsync);
 	printf("n_rsync_skip      : %u\n", g_perf_stats.n_rsync_skipped);
 	printf("n_rsync_blks      : %u\n", g_perf_stats.n_rsync_blks);
@@ -405,9 +405,7 @@ static void mlfs_rpc_init(void) {
 
 void init_fs(void)
 {
-  printf("Starting...\n");
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
-  printf("Replica array.\n");
 
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
@@ -436,11 +434,7 @@ void init_fs(void)
 		for (i = 0; i < g_n_devices + 1; i++)
 			sb[i] = (struct super_block *)mlfs_zalloc(sizeof(struct super_block));
     
-    printf("Starting libfs device init.\n");
-
 		device_init();
-
-    printf("Finished libfs device init.\n");
 
 		debug_init();
 
@@ -478,10 +472,12 @@ void init_fs(void)
 		//FIXME: only for testing
 		//perf_profile = 1;
 
-		if (perf_profile)
+		if (perf_profile){
+      printf("Enabled perf stats.\n");
 			enable_perf_stats = 1;
-		else
+		} else {
 			enable_perf_stats = 0;
+    }
 
 		memset(&g_perf_stats, 0, sizeof(libfs_stat_t));
 

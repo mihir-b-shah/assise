@@ -604,6 +604,7 @@ void commit_log_tx(void)
 		mlfs_debug("commit log_tx %u\n", g_fs_log->outstanding);
 #endif
 		if (enable_perf_stats) {
+      printf("LOG_COMMIT_TSC occurred.\n");
 			g_perf_stats.log_commit_tsc += (asm_rdtscp() - tsc_begin);
 			g_perf_stats.log_commit_nr++;
 		}

@@ -2133,10 +2133,12 @@ void init_fs(void)
 
 	perf_profile = getenv("MLFS_PROFILE");
 
-	if (perf_profile)
+	if (perf_profile){
+    printf("Perf stats enabled.\n");
 		enable_perf_stats = 1;
-	else
+	} else {
 		enable_perf_stats = 0;
+  }
 
 	mlfs_debug("%s\n", "LIBFS is initialized");
 

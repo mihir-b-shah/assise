@@ -24,6 +24,7 @@
 
 #ifdef MLFS
 #include <mlfs/mlfs_interface.h>	
+#include <intf/fcall_api.h>
 #endif
 
 #include "time_stat.h"
@@ -123,7 +124,7 @@ void io_bench::prepare(void)
 	pthread_mutex_init(&cv_mutex, NULL);
 	pthread_cond_init(&cv, NULL);
 
-	ret = mkdir(test_dir_prefix, 0777);
+	ret = det_mkdir(test_dir_prefix, 0777);
 
 	if (ret < 0 && errno != EEXIST) { 
 		perror("mkdir\n");
@@ -144,9 +145,9 @@ void io_bench::prepare(void)
 			buf[i] = 1;
 
 #ifdef ODIRECT
-		if ((fd = open(test_file.c_str(), O_RDWR| O_DIRECT, 0666)) < 0)
+		if ((fd = det_open(test_file.c_str(), O_RDWR| O_DIRECT, 0666)) < 0)
 #else
-		if ((fd = open(test_file.c_str(), O_RDWR, 0666)) < 0)
+		if ((fd = det_open(test_file.c_str(), O_RDWR, 0666)) < 0)
 #endif
 			err(1, "open");
 	} else {
@@ -154,10 +155,10 @@ void io_bench::prepare(void)
 			buf[i] = '0' + (i % 10);
 
 #ifdef ODIRECT
-		fd = open(test_file.c_str(), O_RDWR | O_CREAT| O_TRUNC | O_DIRECT,
+		fd = det_open(test_file.c_str(), O_RDWR | O_CREAT| O_TRUNC | O_DIRECT,
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #else
-		fd = open(test_file.c_str(), O_RDWR | O_CREAT| O_TRUNC,
+		fd = det_open(test_file.c_str(), O_RDWR | O_CREAT| O_TRUNC,
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #endif
 		if (fd < 0) {
@@ -181,7 +182,7 @@ void io_bench::prepare(void)
 
 		test_type = test_type_back;
 
-		lseek(fd, 0, SEEK_SET);
+		det_lseek(fd, 0, SEEK_SET);
 	}
 	*/
 
@@ -230,7 +231,7 @@ void io_bench::do_write(void)
 				buf[j] = '0' + (cur_offset % 10);
 			}
 #endif
-			ret = write(fd, buf, io_size);
+			ret = det_write(fd, buf, io_size);
 
 			if (ret != io_size) {
 				printf("write request %u received len %d\n",
@@ -249,8 +250,8 @@ void io_bench::do_write(void)
 				_io_size = io_size;
 			*/
 
-			lseek(fd, it, SEEK_SET);
-			ret = write(fd, buf, _io_size);
+			det_lseek(fd, it, SEEK_SET);
+			ret = det_write(fd, buf, _io_size);
 			if (ret != _io_size) {
 				printf("write request %u received len %d\n",
 						_io_size, ret);
@@ -263,16 +264,16 @@ void io_bench::do_write(void)
 		int ret;
         std::list<uint8_t>::iterator op_it = op_list.begin();
 		for (auto it : io_list) {
-			lseek(fd, it, SEEK_SET);
+			det_lseek(fd, it, SEEK_SET);
             //read
             if (*op_it == 0) {
-                ret = read(fd, buf, io_size);
+                ret = det_read(fd, buf, io_size);
 				if (ret < 0) 
 					errx(1, "read");
             }
             //write
             else {
-                ret = write(fd, buf, _io_size);
+                ret = det_write(fd, buf, _io_size);
     			if (ret != _io_size) {
     				printf("write request %u received len %d\n",
     						_io_size, ret);
@@ -285,7 +286,7 @@ void io_bench::do_write(void)
 
 	if (do_fsync) {
 		printf("do_sync\n");
-		fsync(fd);
+		det_fsync(fd);
 	}
 
 	if (per_thread_stats) {
@@ -320,7 +321,7 @@ void io_bench::do_read(void)
 			memset(buf, 0, io_size);
 
 #endif
-			ret = read(fd, buf, io_size);
+			ret = det_read(fd, buf, io_size);
 #if 0
 			if (ret != io_size) {
 				printf("read size mismatch: return %d, request %lu\n",
@@ -350,7 +351,7 @@ void io_bench::do_read(void)
 				io_size = io_size;
 		*/
 
-			ret = pread(fd, buf, io_size, it);
+			ret = det_pread64(fd, buf, io_size, it);
 		}
 	}
 
@@ -389,7 +390,7 @@ void io_bench::Run(void)
 	}
 
 	if (test_type == SEQ_WRITE_READ) {
-		lseek(fd, 0, SEEK_SET);
+		det_lseek(fd, 0, SEEK_SET);
 		this->do_read();
 	}
 
@@ -402,7 +403,7 @@ void io_bench::Run(void)
 
 void io_bench::cleanup(void)
 {
-	close(fd);
+	det_close(fd);
 
 #if 0
 	if (test_type == SEQ_READ || test_type == RAND_READ) {
@@ -429,7 +430,7 @@ void io_bench::cleanup(void)
 
 void io_bench::delete_file(void)
 {
-	unlink(test_file.c_str());
+	det_unlink(test_file.c_str());
 	return ;
 }
 
