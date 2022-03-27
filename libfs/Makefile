@@ -47,7 +47,6 @@ LD_FLAGS = -lpthread -lstdc++ -lm -lnuma -lrt -L$(RDMA_DIR) -lrdmacm -libverbs -
 
 #MLFS_FLAGS = -DUSE_SLAB -DLIBFS -DMLFS_INFO
 MLFS_FLAGS = -DLIBFS
-MLFS_FLAGS += -DMLFS_DEBUG
 #MLFS_FLAGS = -DLIBFS -DMLFS_INFO
 #MLFS_FLAGS = -DLIBFS -DMLFS_POSIX
 #MLFS_FLAGS = -DLIBFS -DMLFS_DEBUG
@@ -70,9 +69,9 @@ MLFS_FLAGS += -DUSE_SSD
 
 #DEBUG = -g3 -O0
 #DEBUG = -O0 -gdwarf-2 -g3 -rdynamic
-#DEBUG = -g -O2
+DEBUG = -g -O0
 #DEBUG = -g -Ofast
-DEBUG = -O3
+#DEBUG = -O3
 
 ########
 #  vpath and compile function for each file

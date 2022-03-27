@@ -33,7 +33,6 @@ LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA
 
 #MLFS_FLAGS = -DUSE_SLAB -DMLFS_INFO -DKERNFS
 MLFS_FLAGS = -DKERNFS
-MLFS_FLAGS += -DMLFS_DEBUG
 #MLFS_FLAGS = -DKERNFS -DMLFS_INFO
 #MLFS_FLAGS += -DKERNFS -DMLFS_DEBUG
 MLFS_FLAGS += -DDISTRIBUTED
@@ -54,9 +53,10 @@ MLFS_FLAGS += -DUSE_SSD
 MLFS_FLAGS += -DMIGRATION
 #MLFS_FLAGS += -DEXPERIMENTAL
 
-#DEBUG = -g -O0
+DEBUG = -g -O0
+#DEBUG = -g -O2
 #DEBUG = -g3 -Ofast
-DEBUG = -O3
+#DEBUG = -O3
 
 ########
 #  vpath and compile function for each file
