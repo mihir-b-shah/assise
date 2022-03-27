@@ -14,7 +14,8 @@
 #define FD_START 1000000 //should be consistent with FD_START in libfs/param.h
 
 #define PATH_BUF_SIZE 4095
-#define MLFS_PREFIX (char *)"/tmp/mihirs_bak/mlfs"
+#define MLFS_PREFIX (char *)"/mlfs"
+#define CMP_LEN 5
 
 static inline int check_mlfs_fd(int fd)
 {
@@ -40,7 +41,9 @@ int det_open(const char *filename, int flags, mode_t mode)
   memset(path_buf, 0, PATH_BUF_SIZE);
   collapse_name(filename, path_buf);
 
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    printf("Fell back to open() syscall for %s\n", path_buf);
+    printf("strncmp(%s,%s,%d): %d\n", path_buf, MLFS_PREFIX, CMP_LEN, strncmp(path_buf, MLFS_PREFIX, CMP_LEN));
     return open((char*) filename, flags, mode);
   } else {
     ret = mlfs_posix_open((char*) filename, flags, mode);
@@ -59,7 +62,7 @@ int det_creat(const char *filename, mode_t mode)
   memset(path_buf, 0, PATH_BUF_SIZE);
   collapse_name(filename, path_buf);
 
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
     return creat((char*) filename, mode);
   } else {
     ret = mlfs_posix_creat((char*) filename, mode);
@@ -67,6 +70,76 @@ int det_creat(const char *filename, mode_t mode)
       printf("incorrect fd %d\n", ret);
     }
     return ret;
+  }
+}
+
+int det_rename(char *oldname, char *newname)
+{
+  char path_buf[PATH_BUF_SIZE];
+
+  memset(path_buf, 0, PATH_BUF_SIZE);
+  collapse_name(oldname, path_buf);
+
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    return rename(oldname, newname); 
+  } else {
+    return mlfs_posix_rename(oldname, newname);
+  }
+}
+
+int det_stat(const char *filename, struct stat *statbuf)
+{
+  char path_buf[PATH_BUF_SIZE];
+
+  memset(path_buf, 0, PATH_BUF_SIZE);
+  collapse_name(filename, path_buf);
+
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    return stat((char*) filename, statbuf);
+  } else {
+    return mlfs_posix_stat((char*) filename, statbuf);
+  }
+}
+
+int det_mkdir(const char *path, mode_t mode)
+{
+  char path_buf[PATH_BUF_SIZE];
+
+  memset(path_buf, 0, PATH_BUF_SIZE);
+  collapse_name(path, path_buf);
+
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    return mkdir((char*) path, mode);
+  } else {
+    return mlfs_posix_mkdir((char*) path, mode);
+  }
+}
+
+int det_unlink(const char *path)
+{
+  char path_buf[PATH_BUF_SIZE];
+
+  memset(path_buf, 0, PATH_BUF_SIZE);
+  collapse_name(path, path_buf);
+
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    return unlink((char*) path);
+  } else {
+    return mlfs_posix_unlink((char*) path);
+  }
+}
+
+int det_access(const char *pathname, int mode)
+{
+  char path_buf[PATH_BUF_SIZE];
+
+  memset(path_buf, 0, PATH_BUF_SIZE);
+  collapse_name(pathname, path_buf);
+
+  if (strncmp(path_buf, MLFS_PREFIX, CMP_LEN) != 0){
+    return access((char*) pathname, mode);
+  } else {
+    return mlfs_posix_access((char *)pathname, mode);
   }
 }
 
@@ -121,77 +194,6 @@ off_t det_lseek(int fd, off_t offset, int origin)
     return mlfs_posix_lseek(get_mlfs_fd(fd), offset, origin);
   } else {
     return lseek(fd, offset, origin);
-  }
-}
-
-int det_rename(char *oldname, char *newname)
-{
-  char path_buf[PATH_BUF_SIZE];
-
-  memset(path_buf, 0, PATH_BUF_SIZE);
-  collapse_name(oldname, path_buf);
-
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
-    return rename(oldname, newname); 
-  } else {
-    return mlfs_posix_rename(oldname, newname);
-  }
-
-}
-
-int det_stat(const char *filename, struct stat *statbuf)
-{
-  char path_buf[PATH_BUF_SIZE];
-
-  memset(path_buf, 0, PATH_BUF_SIZE);
-  collapse_name(filename, path_buf);
-
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
-    return stat((char*) filename, statbuf);
-  } else {
-    return mlfs_posix_stat((char*) filename, statbuf);
-  }
-}
-
-int det_mkdir(const char *path, mode_t mode)
-{
-  char path_buf[PATH_BUF_SIZE];
-
-  memset(path_buf, 0, PATH_BUF_SIZE);
-  collapse_name(path, path_buf);
-
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
-    return mkdir((char*) path, mode);
-  } else {
-    return mlfs_posix_mkdir((char*) path, mode);
-  }
-}
-
-int det_unlink(const char *path)
-{
-  char path_buf[PATH_BUF_SIZE];
-
-  memset(path_buf, 0, PATH_BUF_SIZE);
-  collapse_name(path, path_buf);
-
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
-    return unlink((char*) path);
-  } else {
-    return mlfs_posix_unlink((char*) path);
-  }
-}
-
-int det_access(const char *pathname, int mode)
-{
-  char path_buf[PATH_BUF_SIZE];
-
-  memset(path_buf, 0, PATH_BUF_SIZE);
-  collapse_name(pathname, path_buf);
-
-  if (strncmp(path_buf, MLFS_PREFIX, sizeof(MLFS_PREFIX)) != 0){
-    return access((char*) pathname, mode);
-  } else {
-    return mlfs_posix_access((char *)pathname, mode);
   }
 }
 

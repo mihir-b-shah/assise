@@ -31,7 +31,7 @@
 #include "thread.h"
 
 #ifdef MLFS
-const char *test_dir_prefix = "/tmp/mihirs_bak/mlfs";
+const char *test_dir_prefix = "/mlfs";
 #else
 const char *test_dir_prefix = "./pmem";
 //const char test_dir_prefix[] = "./ssd";
@@ -154,6 +154,7 @@ void io_bench::prepare(void)
 		for (unsigned long i = 0; i < BUF_SIZE; i++) 
 			buf[i] = '0' + (i % 10);
 
+    printf("Trying to open file with O_CREAT, %s\n", test_file.c_str());
 #ifdef ODIRECT
 		fd = det_open(test_file.c_str(), O_RDWR | O_CREAT| O_TRUNC | O_DIRECT,
 				S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);

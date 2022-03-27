@@ -31,3 +31,6 @@ libfs/bin/*
 libfs/lib/dpdk-16.07/*
 libfs/lib/nvml/*
 #libfs/lib/spdk/*
+
+#kernfs
+kernfs/build/*
