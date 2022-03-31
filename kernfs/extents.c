@@ -2489,7 +2489,7 @@ int mlfs_ext_remove_space(handle_t *handle, struct inode *inode,
 {
 	struct super_block *sb = get_inode_sb(handle->dev, inode);
 	int depth = ext_depth(handle, inode);
-	struct mlfs_ext_path *path;
+	struct mlfs_ext_path *path = NULL;
 	int i = 0, err = 0;
 
 	mlfs_lsm_debug("truncate from %u(0x%x) to %u(0x%x)\n", 
