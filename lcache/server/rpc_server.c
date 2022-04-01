@@ -4,9 +4,7 @@
 
 volatile sig_atomic_t stop;
 
-int BUFFER_COUNT = 5;
 uint64_t LOG_SIZE =  268265456UL; //256 MB
-uint64_t BUFFER_SIZE = 8388608UL; //8 MB  
 
 void inthand(int signum)
 {	
@@ -15,21 +13,22 @@ void inthand(int signum)
 
 void signal_callback(struct app_context *msg)
 {
-	printf("received msg[%d] with the following body: %s\n", msg->id, msg->data);
+  struct client_req req;
+  memcpy(&req, msg->data, sizeof(struct client_req));
+
+	printf("received from client msg[%d] with the following repl_id: %d, inum: %d\n", msg->id, req.repl_id, req.inum);
 
 	struct app_context *app;
 	int buffer_id = MP_ACQUIRE_BUFFER(msg->sockfd, &app);
 	app->id = msg->id; //set this to same id of received msg (to act as a response)
-	char* data = "answering your message";
-	snprintf(app->data, msg_size, "%s", data);
+  
 	MP_SEND_MSG_ASYNC(msg->sockfd, buffer_id, 0);
 
 	rdma_meta_t *meta = (rdma_meta_t*) malloc(sizeof(rdma_meta_t) + sizeof(struct ibv_sge));
 	meta->addr = 0;
 	meta->length =0;
 	meta->sge_count = 0;
-	//meta->sge_entries[0].addr = NULL
-	//meta->sge_entries[0].length = 0;
+  meta->next = NULL;
 	meta->imm = msg->id; //set immediate to sequence number in order for requester to match it (in case of io wait)
 	IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, 0, 0);
 }

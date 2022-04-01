@@ -1,11 +1,10 @@
-CC = gcc #-D_GNU_SOURCE # C compiler
-#CFLAGS = -fPIC -Wall -Wextra -O2 -g # C flags
+CC = gcc
 CFLAGS = -fPIC -O0 -g
-LDFLAGS = -shared  # linking flags
+LDFLAGS = -shared
 
-RM = rm -f  # rm command
-TARGET_LIB = librdma.so # target lib
-SRCS = agent.c core_ch.c rdma_ch.c shmem_ch.c verbs.c mr.c messaging.c rpc.c utils.c # source files
+RM = rm -f
+TARGET_LIB = librrdma.so
+SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
 CFLAGS += -DSANITY_CHECK
@@ -21,11 +20,6 @@ LDLIBS = -lrdmacm -libverbs -lpthread -lrt
 
 $(TARGET_LIB): $(OBJS)
 		$(CC) -g -o $@ $^ ${LDFLAGS} ${LDLIBS}
-
-#$(SRCS:.c=.d):%.d:%.c
-#		$(CC) $(CFLAGS) -MM $< >$@
-
-#include $(SRCS:.c=.d)
 
 .PHONY: clean
 clean:

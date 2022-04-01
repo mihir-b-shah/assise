@@ -1,17 +1,16 @@
 TARGET := client
 
-RDMA_COMMON_DIR := $(abspath $(CURDIR)/../../libfs/lib/rdma)
-RR_COMMON_DIR := $(abspath $(CURDIR)/../rr)
+RR_COMMON_DIR := $(abspath $(CURDIR)/../rrdma)
 
-LIBS = -L$(RDMA_COMMON_DIR) -L$(RR_COMMON_DIR)
-INCLUDES := $(addprefix -I, $(RDMA_COMMON_DIR) $(RR_COMMON_DIR))
+LIBS = -L$(RR_COMMON_DIR)
+INCLUDES := $(addprefix -I, $(RR_COMMON_DIR))
 
 RM = rm -f  # rm command
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
-CFLAGS = -g -O2 -std=gnu99
-LDFLAGS = -lrdmacm -libverbs -lrdma -lm -lrt -lrr
+CFLAGS = -g -O0 -std=gnu99
+LDFLAGS = -lrdmacm -libverbs -lm -lrt -lrrdma
 
 .PHONY: clean
 
@@ -23,7 +22,3 @@ all: $(OBJS)
 
 clean:
 		rm -f $(OBJS) $(TARGET)
-
-test:
-		@LD_LIBRARY_PATH=$(RDMA_COMMON_DIR) ./$(TARGET)
-
