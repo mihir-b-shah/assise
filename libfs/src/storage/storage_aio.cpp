@@ -1,3 +1,6 @@
+
+#include <stdio.h>
+
 #include "storage/aio/async.h"
 #include "storage/aio/buffer.h"
 #include "storage/storage.h"
@@ -27,7 +30,8 @@ extern "C" uint8_t* mlfs_aio_init(uint8_t dev, char *dev_path) {
 }
 
 extern "C" int mlfs_aio_read(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size) {
-  return controls[dev]->pread(buf, io_size, blockno << g_block_size_shift);
+  int ret = controls[dev]->pread(buf, io_size, blockno << g_block_size_shift);
+  return ret;
 }
 
 extern "C" int mlfs_aio_write(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size) {

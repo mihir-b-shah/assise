@@ -234,9 +234,10 @@ int mlfs_posix_read(int fd, uint8_t *buf, int count)
 		panic("file descriptor is wrong\n");
 		return -EBADF;
 	}
-
+  
 	struct mlfs_reply *reply = mlfs_zalloc(sizeof(struct mlfs_reply));
 	reply->dst = buf;
+
 	ret = mlfs_file_read(f, reply, count);
 
 	pthread_rwlock_unlock(&f->rwlock);
@@ -261,7 +262,7 @@ int mlfs_posix_pread64(int fd, uint8_t *buf, int count, loff_t off)
 		panic("file descriptor is wrong\n");
 		return -EBADF;
 	}
-
+  
 	struct mlfs_reply *reply = mlfs_zalloc(sizeof(struct mlfs_reply));
 	reply->dst = buf;
 	ret = mlfs_file_read_offset(f, reply, count, off);
@@ -298,7 +299,7 @@ int mlfs_posix_write(int fd, uint8_t *buf, size_t count)
 
 	//if (enable_perf_stats)
 	//	start_tsc_tmp = asm_rdtscp();
-
+  
 	ret = mlfs_file_write(f, buf, count, f->off);
 
 	// change offset here since mlfs_file_write doesn't touch f->off
@@ -342,7 +343,7 @@ int mlfs_posix_pwrite64(int fd, uint8_t *buf, size_t count, loff_t off)
                 errno = EBADF;
                 return -1;
 	}
-
+  
 	ret = mlfs_file_write(f, buf, count, off);
 
 	// change offset here since mlfs_file_write doesn't touch f->off

@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -33,6 +34,7 @@ uint8_t *hdd_init(uint8_t dev, char *dev_path)
 		perror("cannot stat the storage file\n");
 		exit(-1);
 	}
+  //ftruncate(fd, dev_size[dev]);
 
 	printf("hdd engine is initialized %s\n", dev_path);
 

@@ -956,7 +956,6 @@ int bmap(struct inode *ip, struct bmap_request *bmap_req)
 			bmap_req->dev = g_ssd_dev;
 			return 0;
 #endif
-
 			map.m_lblk = (offset >> g_block_size_shift);
 			map.m_len = bmap_req->blk_count;
 			map.m_flags = 0;

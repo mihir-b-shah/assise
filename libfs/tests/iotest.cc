@@ -125,7 +125,7 @@ void io_bench::prepare(void)
 	pthread_cond_init(&cv, NULL);
 
 	ret = det_mkdir(test_dir_prefix, 0777);
-
+  
 	if (ret < 0 && errno != EEXIST) { 
 		perror("mkdir\n");
 		exit(-1);
@@ -145,11 +145,15 @@ void io_bench::prepare(void)
 			buf[i] = 1;
 
 #ifdef ODIRECT
-		if ((fd = det_open(test_file.c_str(), O_RDWR| O_DIRECT, 0666)) < 0)
+		fd = det_open(test_file.c_str(), O_RDWR| O_DIRECT, 0666);
 #else
-		if ((fd = det_open(test_file.c_str(), O_RDWR, 0666)) < 0)
+		fd = det_open(test_file.c_str(), O_RDWR, 0666);
 #endif
+    printf("fd: %d\n at line %d", fd, __LINE__);
+    if(fd < 0){
 			err(1, "open");
+    }
+
 	} else {
 		for (unsigned long i = 0; i < BUF_SIZE; i++) 
 			buf[i] = '0' + (i % 10);
@@ -341,6 +345,7 @@ void io_bench::do_read(void)
 					break;
 				}
 			}
+      printf("Buffer verified.\n");
 #endif
 		}
 	} else if (test_type == RAND_READ || test_type == ZIPF_READ) {
@@ -611,7 +616,7 @@ int main(int argc, char *argv[])
 
 	file_size_bytes = io_bench::str_to_size(argv[2]);
 	io_size = io_bench::str_to_size(argv[3]);
-
+  
 	std::cout << "Total file size: " << file_size_bytes << "B" << endl
 		<< "io size: " << io_size << "B" << endl
 		<< "# of thread: " << n_threads << endl;
