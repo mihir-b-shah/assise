@@ -2,12 +2,11 @@
 #ifndef _SSD_EMULATION_H_
 #define _SSD_EMULATION_H_
 
-#include "filesystem/slru.h"
-#include "ds/khash.h"
 #include <stdint.h>
 
 void init_ssd_emul(void);
-void send_to_ssd(lru_key_t, lru_val_t);
-int ssd_has_blk(int64_t, lru_val_t*);
+void send_to_ssd(uint64_t blk);
+int ssd_has_blk(uint64_t blk);
+void destroy_ssd_emul(void);
 
 #endif

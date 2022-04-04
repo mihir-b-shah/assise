@@ -19,6 +19,7 @@
 #include "extents_bh.h"
 #include "filesystem/slru.h"
 #include "migrate.h"
+#include "ssd_emulation.h"
 
 #ifdef DISTRIBUTED
 #include "distributed/peer.h"
@@ -1964,6 +1965,7 @@ void shutdown_fs(void)
 
 	device_shutdown();
 	mlfs_commit(g_root_dev);
+  destroy_ssd_emul();
 	return ;
 }
 
@@ -2083,6 +2085,9 @@ void init_fs(void)
 {
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
   printf("setup replica array.\n");
+
+  init_ssd_emul();
+  printf("setup ssd emulation.\n");
 
 	int i;
 	const char *perf_profile;

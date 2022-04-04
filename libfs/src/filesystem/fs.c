@@ -22,6 +22,7 @@
 #include "mlfs/mlfs_interface.h"
 #include "ds/bitmap.h"
 #include "filesystem/slru.h"
+#include "filesystem/ssd_emulation.h"
 
 #include "distributed/rpc_interface.h"
 
@@ -1387,6 +1388,8 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
+  int in_ssd = ssd_has_blk(bmap_req.block_no);
+  printf("Block %sin ssd.\n", in_ssd ? "" : "not ");
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1757,6 +1760,8 @@ do_global_search:
 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
+  int in_ssd = ssd_has_blk(bmap_req.block_no);
+  printf("Block %sin ssd.\n", in_ssd ? "" : "not ");
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);

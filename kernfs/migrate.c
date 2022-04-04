@@ -164,7 +164,7 @@ int migrate_blocks(uint8_t from_dev, uint8_t to_dev, isolated_list_t *migrate_li
 		migrated_success++;
 		HASH_DEL(g_lru_hash[from_dev], l);
 
-    send_to_ssd(l->key, l->val);
+    send_to_ssd(l->key.block);
 	}
 
   /*
