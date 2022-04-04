@@ -12,7 +12,6 @@ extern "C" {
 #define BLOCKS_PER_LRU_ENTRY (LRU_ENTRY_SIZE >> g_block_size_shift)
 #define BLOCKS_TO_LRU_ENTRIES(x) ((x) / BLOCKS_PER_LRU_ENTRY)
 
-
 typedef struct isolated_list {
 	uint32_t n;
 	struct list_head head;
