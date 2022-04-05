@@ -408,6 +408,9 @@ void init_fs(void)
 {
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
 
+  init_ssd_emul();
+  printf("initialized ssd emulation on libfs.\n");
+
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
 #endif

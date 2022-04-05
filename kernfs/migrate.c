@@ -141,6 +141,8 @@ int update_slru_list_from_digest(uint8_t dev, lru_key_t k, lru_val_t v)
 
 int migrate_blocks(uint8_t from_dev, uint8_t to_dev, isolated_list_t *migrate_list, int swap)
 {
+  static int sampl_intv = 0;
+
 	int ret;
 	int migrate_down = from_dev < to_dev;
 	int migrate_up = !migrate_down;
@@ -185,7 +187,7 @@ int try_migrate_blocks(uint8_t from_dev, uint8_t to_dev, uint32_t nr_blocks, uin
 #ifdef MIGRATION
 	int migrate_down = from_dev < to_dev;
 	int migrate_up = !migrate_down;
-	uint32_t n_entries = 0, i = 0, ret, do_migrate = 0;
+	uint32_t n_entries = 0, i = 0, ret = 0, do_migrate = 0;
 	uint64_t used_blocks, datablocks;
 	struct isolated_list migrate_list;
 	lru_node_t *node, *tmp;
@@ -201,10 +203,16 @@ int try_migrate_blocks(uint8_t from_dev, uint8_t to_dev, uint32_t nr_blocks, uin
 
 	used_blocks = sb[from_dev]->used_blocks;
 	datablocks = disk_sb[from_dev].ndatablocks;
+	
+  /*
+  printf("*** used_blocks: %lu, migrate_thr: %lu, db: %lu, total: %lu\n", used_blocks, migrate_threshold[from_dev], datablocks/4,
+    (migrate_threshold[from_dev] * datablocks / 4) / 100);
+  */
 
-	if (used_blocks > (migrate_threshold[from_dev] * datablocks / 4) / 100) {
+  uint64_t num_migr = get_num_migrated();
+	if (used_blocks - num_migr > (migrate_threshold[from_dev] * datablocks / 4) / 100) {
 		n_entries = BLOCKS_TO_LRU_ENTRIES(
-				used_blocks - ((migrate_threshold[from_dev] * datablocks / 4) / 100));
+				used_blocks - num_migr - ((migrate_threshold[from_dev] * datablocks / 4) / 100));
 		do_migrate = 1;
 	} else {
 		return 0;
@@ -222,9 +230,12 @@ do_force_migration:
 
 	migrate_list.n = 0;
 	struct lru *from_lru = &g_lru[from_dev];
+  
+  //printf("*** from_lru size: %lu\n", from_lru->n);
 
   // TODO: number of tries to migrate- right now, just once
   while(ret < nr_blocks){
+    //printf("*** ran inside loop.\n");
     list_for_each_entry_safe_reverse(node, tmp, &from_lru->lru_head, list) {
       // isolate list from per-device lru list.
       list_del_init(&node->list);
@@ -232,6 +243,7 @@ do_force_migration:
       if (node->val.inum == ROOTINO)
         continue;
 
+      //printf("*** added to list head.\n");
       list_add(&node->list, &migrate_list.head);
       migrate_list.n++;
 
@@ -246,7 +258,7 @@ do_force_migration:
     }
     // ensure forward progress
     int liveliness_factor = 1;
-	  if (used_blocks > datablocks / 4) {
+	  if (used_blocks - num_migr > datablocks / 4) {
       liveliness_factor = 0;
     }
     ret += liveliness_factor + migrate_blocks(from_dev, to_dev, &migrate_list, swap);
