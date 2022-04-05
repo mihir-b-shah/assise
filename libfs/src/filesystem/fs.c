@@ -1392,7 +1392,6 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
   int in_ssd = ssd_has_blk(bmap_req.block_no);
-  printf("Block %sin ssd.\n", in_ssd ? "" : "not ");
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1405,172 +1404,40 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 	bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
 	bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
 
-	// NVM case: no read caching.
-	if (bmap_req.dev == g_root_dev) {
-		if(reply->remote) {
-#if MLFS_REPLICA
-			mlfs_debug("preparing rdma mressage for offset: %lu\n", off);
-			src_addr = ((bmap_req.block_no) << g_block_size_shift) +
-					(uintptr_t)g_bdev[g_root_dev]->map_base_addr;
+  // we don't actually migrate things, so shouldn't be in ssd.
+  assert(bmap_req.dev == g_root_dev);
+  
+  if (in_ssd) {
+    /* update caches as if our block WAS in ssd.
+     * what kinds of coherence issues can this present?
+     *  - probably nothing -> I think, Assise cannot write a block that has been already evicted to ssd.
+     * then, just place the (read-only) block in read cache. Invariant is that digestion will never hit it.
+     */
 
-			resp = create_rdma_entry(src_addr + off - off_aligned,
-					(uintptr_t)(reply->dst + off - off_aligned), io_size,
-					MR_NVM_SHARED, -1);
-
-			rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr,
-					reply->seqn);
-
-			list_del(&resp->head);
-			mlfs_free(resp->meta);
-			mlfs_free(resp);
-
-			//also send the entire 4k block separately
-			resp = create_rdma_entry(src_addr, (uintptr_t)(reply->dst),
-					g_block_size_bytes, MR_NVM_SHARED, -1);
-			rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, 0);
-			list_del(&resp->head);
-			mlfs_free(resp->meta);
-			mlfs_free(resp);
-#endif
-		}
-		else {
-#if MLFS_MASTER && defined(NVM_READ_REDIRECT)
-			// -- ONLY FOR DEBUGGING --
-			// do remote read for data that can otherwise be read from local NVM
-			// shared area
-
-			// TODO: use performance model to emulate delay for rdma operations
-			// over NVM (see: storage/storage_dax.c).
-
-			offset_t cur, l;
-
-			_fcache_block = add_to_read_cache(ip, off_aligned, NULL);
-
-			mlfs_debug("GET from remote: path:%s offset:%lu iosize:%u\n", path, cur, io_size);
-
-			// response destination is set to _fcache_block->data; in other words,
-			// replica writes back directly to read cache (which is pre-registered
-			// by RNIC)
-
-			rpc = rpc_remote_read_async(path, off, io_size,
-					_fcache_block->data, 1);
-
-			if(enable_perf_stats)
-				start_tsc = asm_rdtscp();
-
-			rpc_await(rpc);
-
-			if (enable_perf_stats)
-				g_perf_stats.read_rpc_wait_tsc += (asm_rdtscp() - start_tsc);
-
-			//copy from cache
-			memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
-
-#else
-			//FIXME: update global device LRU
-			bh->b_offset = off - off_aligned;
-			bh->b_data = reply->dst;
-			bh->b_size = io_size;
-
-			bh_submit_read_sync_IO(bh);
-			bh_release(bh);
-#endif
-		}
-	}
-	// SSD and HDD cache: do read caching.
-	else {
 		mlfs_assert(_fcache_block == NULL);
-
 		_fcache_block = add_to_read_cache(ip, off_aligned, NULL);
+		
+    // TODO: mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
 
-#if 1
-		// TODO: Move block-level readahead to read cache
-		if (bh->b_dev == g_ssd_dev)
-			mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
-#endif
+    bh->b_offset = off_aligned;
+    bh->b_data = _fcache_block->data;
+    bh->b_size = g_block_size_bytes;
+    bh_submit_read_sync_IO(bh);
+    bh_release(bh);
 
-		if (enable_perf_stats)
-			start_tsc = asm_rdtscp();
-
-		if(reply->remote) {
-#if MLFS_REPLICA
-			bh->b_data = mlfs_alloc(bmap_req.blk_count_found << g_block_size_shift);
-			bh->b_size = g_block_size_bytes;
-			bh->b_offset = 0;
-			bh_submit_read_sync_IO(bh);
-			mlfs_io_wait(g_ssd_dev, 1);
-
-			bh_release(bh);
-			mlfs_debug("preparing rdma mressage for offset: %lu\n", off);
-			src_addr = ((bmap_req.blk_count_found) << g_block_size_shift) +
-					(uintptr_t)(g_bdev[g_root_dev]->map_base_addr) + off - off_aligned;
-
-			// send entire 4k response; no reason to send partial reads
-			// given the time already wasted on ssd/hdd reads
-			resp = create_rdma_entry(src_addr, (uintptr_t)(reply->dst),
-					g_block_size_bytes, MR_DRAM_CACHE, -1);
-			rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, 0);
-			list_del(&resp->head);
-			mlfs_free(resp->meta);
-			mlfs_free(resp);
-#endif
-		}
-#if MLFS_MASTER
-		else if((bmap_req.dev == g_ssd_dev && mlfs_is_set(SSD_READ_REDIRECT))
-			|| (bmap_req.dev == g_hdd_dev && mlfs_is_set(HDD_READ_REDIRECT))) {
-
-			mlfs_debug("GET from remote: path:%s offset:%lu iosize:%u\n", path, off, io_size);
-
-			// response destination is set to _fcache_block->data; in other words,
-			// replica writes back directly to read cache (which is pre-registered
-			// by RNIC)
-
-			rpc = rpc_remote_read_async(path, off, io_size,
-					_fcache_block->data, 1);
-
-			rpc_await(rpc);
-
-			//copy from cache
-			memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
-		}
-
-#endif
-		else {
-			bh->b_data = mlfs_alloc(bmap_req.blk_count_found << g_block_size_shift);
-			bh->b_size = g_block_size_bytes;
-			bh->b_offset = 0;
-
-			bh_submit_read_sync_IO(bh);
-			mlfs_io_wait(g_ssd_dev, 1);
-			memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
-
-		}
-
-		if (enable_perf_stats) {
-			g_perf_stats.read_data_tsc += (asm_rdtscp() - start_tsc);
-			g_perf_stats.read_data_nr++;
-		}
-	}
+    memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
+  } else {
+    // regular nvm read.
+    bh->b_offset = off - off_aligned;
+    bh->b_data = reply->dst;
+    bh->b_size = io_size;
+    bh_submit_read_sync_IO(bh);
+    bh_release(bh);
+  }
 
 do_io_unaligned:
 	if (enable_perf_stats)
 		start_tsc = asm_rdtscp();
-
-	/*
-	if(reply->remote) {
-		// trigger responses
-		mlfs_debug("Sending back replies to master %s\n", path);
-		list_for_each_entry_safe_reverse(resp, _resp, &remote_io_list, head) {
-			if(list_is_last(&resp->head, &remote_io_list))
-				rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, reply->seqn);
-			else
-				rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, 0);
-			list_del(&resp->head);
-			mlfs_free(resp->meta);
-			mlfs_free(resp);
-		}
-	}
-	*/
 
 	// Patch data from log (L0) if up-to-date blocks are in the update log.
 	// This is required when partial updates are in the update log.
@@ -1615,14 +1482,6 @@ int do_aligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, ui
 	INIT_LIST_HEAD(&io_list);
 	INIT_LIST_HEAD(&io_list_log);
 	INIT_LIST_HEAD(&remote_io_list);
-
-/*
-#if MLFS_REPLICA
-	//only allow 4 kb remote requests
-	if(reply->remote)
-		mlfs_assert(io_size == g_block_size_bytes);
-#endif
-*/
 
 	mlfs_assert(io_size % g_block_size_bytes == 0);
 
@@ -1764,7 +1623,6 @@ do_global_search:
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
   int in_ssd = ssd_has_blk(bmap_req.block_no);
-  printf("Block %sin ssd.\n", in_ssd ? "" : "not ");
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1779,210 +1637,45 @@ do_global_search:
 		}
 		goto do_io_aligned;
 	}
-
+	
 	// NVM case: no caching for local reads.
-	if (bmap_req.dev == g_root_dev) {
-		//TODO: update shared device LRU to reflect block being touched by read
+  //TODO: update shared device LRU to reflect block being touched by read
 
-		mlfs_debug("Found in NVM: %s\n", path);
+  mlfs_debug("Found in NVM: %s\n", path);
 
-		if(reply->remote) {
-#ifdef DISTRIBUTED
-			offset_t cur, l;
+  // again, we don't actually migrate things.
+  assert(bmap_req.dev == g_root_dev);
 
-			/* Add an RDMA write operation (response) for each 4 KB block.
-				 We seperate these responses since our cache size is 4 KB.
+  if (!in_ssd) {
 
-				 TODO: use performance model to emulate delay for rdma operations
-				 over NVM (see: storage/storage_dax.c). PCIe bandwidth emulation
-				 unecessary since it's much higher than than NVM bandwidth.
+    bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
+    bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
 
-				 TODO: Optimize for RDMA gather IO (in case of non-contiugous bmaps)
-			*/
+    bh->b_offset = 0;
+    bh->b_data = reply->dst + pos;
+    bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
 
+    list_add_tail(&bh->b_io_list, &io_list);
 
-			mlfs_debug("preparing rdma mressage for offset: %lu\n", cur);
-			src_addr = (uintptr_t)(((bmap_req.block_no) << g_block_size_shift) +
-						g_bdev[g_root_dev]->map_base_addr);
-			resp = create_rdma_entry(src_addr, (uintptr_t)(reply->dst),
-						g_block_size_bytes*bmap_req.blk_count_found,
-						MR_NVM_SHARED, -1);
-			list_add_tail(&resp->head, &remote_io_list);
+  } else {
 
-			/*
-			for (cur = _off, l = 0; l < bmap_req.blk_count_found;
-					cur += g_block_size_bytes, l++) {
-				mlfs_debug("preparing rdma mressage for offset: %lu\n", cur);
-				src_addr = (uintptr_t)(((bmap_req.block_no+l) << g_block_size_shift) +
-									g_bdev[g_root_dev]->map_base_addr);
-				resp = create_rdma_entry(src_addr, (uintptr_t)(reply->dst)+cur-_off,
-						g_block_size_bytes, MR_NVM_SHARED, -1);
-				list_add_tail(&resp->head, &remote_io_list);
-			}
-			*/
-#else
-			panic("undefined codepath\n");
-#endif
-		}
-		else {
-#if MLFS_MASTER && defined(NVM_READ_REDIRECT)
-			// -- ONLY FOR DEBUGGING --
-			// do remote read for data that can otherwise be read from local NVM
-			// shared area
-
-			offset_t cur, l;
-
-			// NOTE: in this case, we add data to read cache; however performance
-			// is non-issue since this is only for debugging
-			for (cur = _off, l = 0; l < bmap_req.blk_count_found;
-					cur += g_block_size_bytes, l++) {
-				_fcache_block = add_to_read_cache(ip, cur, NULL);
-
-				mlfs_debug("GET from remote: path:%s offset:%lu\n", path, cur);
-				//rpc = mlfs_zalloc(sizeof(struct rpc_pending_io));
-
-				// response destination is set to _fcache_block->data; in other words,
-				// replica writes back directly to read cache (which is pre-registered
-				// by RNIC)
-				rpc = rpc_remote_read_async(path, cur, g_block_size_bytes,
-						_fcache_block->data, 1);
-				list_add_tail(&rpc->l, &remote_io_list);
-
-				copy_list[l].dst_buffer = reply->dst + cur - _off;
-				copy_list[l].cached_data = _fcache_block->data;
-				copy_list[l].size = g_block_size_bytes;
-			}
-
-#else
-			bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
-			bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
-			bh->b_offset = 0;
-			bh->b_data = reply->dst + pos;
-			bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
-
-			list_add_tail(&bh->b_io_list, &io_list);
-#endif
-		}
-	}
-
-	// SSD and HDD cache: do read caching.
-	else {
-#if MLFS_MASTER
-		uint32_t rpc_read_size = 0;
-		uint8_t* cache_start;
-		uint8_t* cache_prev;
-		offset_t cur_start;
-#endif
+    // TODO: readahead
 		offset_t cur, l;
-
-#if 1
-		// TODO: block-level read_ahead to read cache.
-		if (bmap_req.dev == g_ssd_dev)
-			mlfs_readahead(g_ssd_dev, bmap_req.block_no, (256 << 10));
-#endif
-
-		 /* The read cache is managed by 4 KB block.
-		 * For large IO size (e.g., 256 KB), we have two design options
-		 * 1. To make a large IO request to SSD. But, in this case, libfs
-		 *    must copy IO data to read cache for each 4 KB block.
-		 * 2. To make 4 KB requests for the large IO. This case does not
-		 *    need memory copy; SPDK could make read request with the
-		 *    read cache block.
-		 * Currently, I implement it with option 2
-		 */
-
-		// register IO memory to read cache for each 4 KB blocks.
-		// When bh finishes IO, the IO data will be in the read cache.
 		for (cur = _off, l = 0; l < bmap_req.blk_count_found;
 				cur += g_block_size_bytes, l++) {
 			_fcache_block = add_to_read_cache(ip, cur, NULL);
 
-			if(reply->remote) {
-#ifdef DISTRIBUTED
-				// construct remote read responses
-				mlfs_debug("preparing rdma mressage for offset: %lu\n",(uintptr_t)(reply->dst)+pos);
-				src_addr = (uintptr_t)_fcache_block->data;
-				resp = create_rdma_entry(src_addr, (uintptr_t)(reply->dst)+cur-_off, g_block_size_bytes,
-						MR_DRAM_CACHE, -1);
-				list_add_tail(&resp->head, &remote_io_list);
-
-				// read from SSD/HDD and write to cache
-				bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
-				bh->b_data = _fcache_block->data;
-				bh->b_size = g_block_size_bytes;
-				bh->b_offset = 0;
-				list_add_tail(&bh->b_io_list, &io_list);
-#else
-				panic("undefined codepath\n");
-#endif
-			}
-#if MLFS_MASTER
-			else if((bmap_req.dev == g_ssd_dev && mlfs_is_set(SSD_READ_REDIRECT))
-				|| (bmap_req.dev == g_hdd_dev && mlfs_is_set(HDD_READ_REDIRECT))) {
-
-				if(l == 0) {
-					cache_start = _fcache_block->data;
-					cur_start = cur;
-				}
-
-				/*
-					 Construct remote read requests
-
-					 TODO: Have some mechanism that first checks (speculates?) if block can be
-					 served faster from replica and then decide if the rpc is necessary.
-
-					 -- OR ---
-
-					 TODO: Do both remote and local reads simultaneously (aka speculative reads).
-						 Could be beneficial for two cases:
-						1. Remote NVM reads being occasionally slower than local SSD reads
-					2. Non-clairvoynat master (i.e. doesn't know if block is stored on faster
-						 layer on replica)
-
-					 Currently undecided on which is a more sensible approach
-					 (pending some benchmark results).
-				*/
-
-				// response destination is set to _fcache_block->data; in other words, replica writes back
-				// directly to read cache (which is pre-registered by RNIC)
-
-				// cache break detected
-				if(l > 0 && cache_prev + g_block_size_bytes != _fcache_block->data) {
-					mlfs_info("GET from remote: path:%s offset:%lu iosize:%u\n",
-									 path, cur_start, rpc_read_size);
-					rpc = rpc_remote_read_async(path, cur_start, rpc_read_size, cache_start, 1);
-					list_add_tail(&rpc->l, &remote_io_list);
-					cache_start = _fcache_block->data;
-					cur_start = cur;
-					rpc_read_size = 0;
-				}
-
-				cache_prev = _fcache_block->data;
-				rpc_read_size += g_block_size_bytes;
-
-				// last block
-				if(l == bmap_req.blk_count_found - 1) {
-					mlfs_info("GET from remote: path:%s offset:%lu iosize:%u\n",
-									 path, cur_start, rpc_read_size);
-					rpc = rpc_remote_read_async(path, cur_start, rpc_read_size, cache_start, 1);
-					list_add_tail(&rpc->l, &remote_io_list);
-				}
-			}
-#endif
-			else {
-				//read from SSD/HDD and write to cache
-				bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
-				bh->b_data = _fcache_block->data;
-				bh->b_size = g_block_size_bytes;
-				bh->b_offset = 0;
-				list_add_tail(&bh->b_io_list, &io_list);
-			}
+      bh = bh_get_sync_IO(g_root_dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
+      bh->b_data = _fcache_block->data;
+      bh->b_size = g_block_size_bytes;
+      bh->b_offset = 0;
+      list_add_tail(&bh->b_io_list, &io_list);
 
 			copy_list[l].dst_buffer = reply->dst + cur - _off;
 			copy_list[l].cached_data = _fcache_block->data;
 			copy_list[l].size = g_block_size_bytes;
 		}
-	}
+  }
 
 	/* EAGAIN happens in two cases:
 	 * 1. A size of extent is smaller than bmap_req.blk_count. In this
@@ -2020,77 +1713,26 @@ do_io_aligned:
 		bh_release(bh);
 	}
 
-	mlfs_io_wait(g_ssd_dev, 1);
+	// mlfs_io_wait(g_ssd_dev, 1);
 	// At this point, read cache entries are filled with data from SSD/HDD.
 
-#if MLFS_MASTER
-	uint64_t start_wait_tsc;
-	//wait for remote reads
-	list_for_each_entry_safe(rpc, _rpc, &remote_io_list, l) {
-		mlfs_info("waiting on response [seqn:%u] from peer\n", rpc->seq_n);
+  // copying read cache data to user buffer.
+  for (i = 0 ; i < bitmap_size; i++) {
+    if (copy_list[i].dst_buffer != NULL) {
+      memmove(copy_list[i].dst_buffer, copy_list[i].cached_data,
+          copy_list[i].size);
 
-		if(enable_perf_stats)
-			start_wait_tsc = asm_rdtscp();
+      if (copy_list[i].dst_buffer + copy_list[i].size > reply->dst + io_size)
+        panic("read request overruns the user buffer\n");
+    }
+  }
 
-		//rpc_requests_busy_wait(1);
-		rpc_await(rpc);
-
-		if (enable_perf_stats)
-			g_perf_stats.read_rpc_wait_tsc += (asm_rdtscp() - start_wait_tsc);
-
-		mlfs_info("received response [seqn:%u] from peer\n", rpc->seq_n);
-	}
-	// At this point, read cache entries are filled with data from replica.
-#endif
-
-	if(reply->remote) {
-#if MLFS_REPLICA
-		//trigger responses
-		mlfs_debug("Sending back replies to master %s\n", path);
-		list_for_each_entry_safe_reverse(resp, _resp, &remote_io_list, head) {
-			if(list_is_last(&resp->head, &remote_io_list))
-				rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, reply->seqn);
-			else
-				rpc_remote_read_response(reply->sockfd, resp->meta, resp->local_mr, 0);
-			list_del(&resp->head);
-			mlfs_free(resp->meta);
-			mlfs_free(resp);
-		}
-#else
-		panic("Unsupported operation; only standbys can serve remote reads\n");
-#endif
-	}
-	else {
-		// copying read cache data to user buffer.
-		for (i = 0 ; i < bitmap_size; i++) {
-			if (copy_list[i].dst_buffer != NULL) {
-				memmove(copy_list[i].dst_buffer, copy_list[i].cached_data,
-						copy_list[i].size);
-
-				if (copy_list[i].dst_buffer + copy_list[i].size > reply->dst + io_size)
-					panic("read request overruns the user buffer\n");
-			}
-		}
-
-		// Patch data from log (L0) if up-to-date blocks are in the update log.
-		// This is required when partial updates are in the update log.
-		list_for_each_entry_safe(bh, _bh, &io_list_log, b_io_list) {
-
-#if 0
-			//Useful for debugging, if there is a read mismatch in our sanity checks
-			uint64_t offending_block = 38488; //block number to compare
-			if(bh->b_blocknr == offending_block) {
-				printf("offending log block\n");
-				hexdump((void*)((bh->b_blocknr << g_block_size_shift) +
-						(uint64_t)g_bdev[g_fs_log->dev]->map_base_addr), 4096);
-			}
-#endif
-
-			bh_submit_read_sync_IO(bh);
-
-			bh_release(bh);
-		}
-	}
+  // Patch data from log (L0) if up-to-date blocks are in the update log.
+  // This is required when partial updates are in the update log.
+  list_for_each_entry_safe(bh, _bh, &io_list_log, b_io_list) {
+    bh_submit_read_sync_IO(bh);
+    bh_release(bh);
+  }
 
 	if (enable_perf_stats) {
 		g_perf_stats.read_data_tsc += (asm_rdtscp() - start_tsc);
