@@ -75,3 +75,8 @@ void destroy_ssd_emul(void)
 {
   shm_unlink(shm_path);
 }
+
+void ssd_emul_latency(void)
+{
+
+}

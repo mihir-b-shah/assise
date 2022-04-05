@@ -116,6 +116,11 @@ void show_libfs_stats(void)
 	printf("rsync ops         : %u\n", g_perf_stats.rsync_ops);
 	printf("lease rpcs        : %u\n", g_perf_stats.lease_rpc_nr);
 	printf("lease lpcs        : %u\n", g_perf_stats.lease_lpc_nr);
+	printf("read cache hit    : %lu\n", g_perf_stats.read_cache_hit);
+	printf("nvm hit ct        : %lu\n", g_perf_stats.nvm_hit);
+	printf("ssd hit ct        : %lu\n", g_perf_stats.ssd_hit);
+	printf("read cache evict  : %lu\n", g_perf_stats.read_cache_evict);
+	printf("read cache add    : %lu\n", g_perf_stats.read_cache_add);
 
 
 /*
@@ -1136,6 +1141,8 @@ static void evict_read_cache(struct inode *inode, uint32_t n_entries_to_evict)
 			mlfs_free(_fcache_block);
 			g_fcache_head.n--;
 			i++;
+      
+      g_perf_stats.read_cache_evict++;
 		}
 	}
 
@@ -1184,6 +1191,8 @@ static struct fcache_block *add_to_read_cache(struct inode *inode,
 		memcpy(_fcache_block->data, data, g_block_size_bytes);
 
 	list_move(&_fcache_block->l, &g_fcache_head.lru_head);
+
+  g_perf_stats.read_cache_add++;
 
 	return _fcache_block;
 }
@@ -1304,6 +1313,7 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 	if (_fcache_block) {
 		// read cache hit
 		if (_fcache_block->is_data_cached) {
+        g_perf_stats.read_cache_hit++;
 				mlfs_debug("%s\n", "read cache hit");
 
 				if(reply->remote) {
@@ -1408,6 +1418,7 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
   assert(bmap_req.dev == g_root_dev);
   
   if (in_ssd) {
+    g_perf_stats.ssd_hit++;
     /* update caches as if our block WAS in ssd.
      * what kinds of coherence issues can this present?
      *  - probably nothing -> I think, Assise cannot write a block that has been already evicted to ssd.
@@ -1427,6 +1438,7 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 
     memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
   } else {
+    g_perf_stats.nvm_hit++;
     // regular nvm read.
     bh->b_offset = off - off_aligned;
     bh->b_data = reply->dst;
@@ -1513,6 +1525,7 @@ int do_aligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, ui
 		if (_fcache_block) {
 			// read cache hit
 			if (_fcache_block->is_data_cached) {
+        g_perf_stats.read_cache_hit++;
 				mlfs_debug("read cache hit for block %lu\n", key);
 
 				if(reply->remote) {
@@ -1647,6 +1660,7 @@ do_global_search:
   assert(bmap_req.dev == g_root_dev);
 
   if (!in_ssd) {
+    g_perf_stats.nvm_hit += bmap_req.blk_count_found;
 
     bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
     bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
@@ -1663,6 +1677,7 @@ do_global_search:
 		offset_t cur, l;
 		for (cur = _off, l = 0; l < bmap_req.blk_count_found;
 				cur += g_block_size_bytes, l++) {
+      g_perf_stats.ssd_hit++;
 			_fcache_block = add_to_read_cache(ip, cur, NULL);
 
       bh = bh_get_sync_IO(g_root_dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);

@@ -45,7 +45,7 @@ const char *test_dir_prefix = "./pmem";
 
 //#define ODIRECT
 #undef ODIRECT
-//#define VERIFY
+#define VERIFY
 
 typedef enum {SEQ_WRITE, SEQ_READ, SEQ_WRITE_READ, RAND_WRITE, RAND_READ, 
 	ZIPF_WRITE, ZIPF_READ, ZIPF_MIX, NONE} test_t;
@@ -345,7 +345,6 @@ void io_bench::do_read(void)
 					break;
 				}
 			}
-      printf("Buffer verified.\n");
 #endif
 		}
 	} else if (test_type == RAND_READ || test_type == ZIPF_READ) {
