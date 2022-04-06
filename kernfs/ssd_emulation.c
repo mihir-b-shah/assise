@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <storage/storage.h>
 
@@ -78,5 +79,15 @@ void destroy_ssd_emul(void)
 
 void ssd_emul_latency(void)
 {
-
+  /*
+  // syscall latency fine since an ssd write would probably have similar latency.
+  int iters = 0;
+  clock_t start = clock();
+  while(clock() - start < CLOCKS_PER_SEC/100000){
+    int i = 0;
+    // avoid busy-calling clock(), so stall a little on our own too. The limit 100000 is tuneable.
+    while(i < 100000){ ++i; }
+    ++iters;
+  }
+  */
 }
