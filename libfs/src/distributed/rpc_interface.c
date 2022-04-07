@@ -27,67 +27,29 @@ int rpc_shutdown = 0;
 
 int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signal_cb_fn signal_callback)
 {
-	assert(RPC_MSG_BYTES > MAX_REMOTE_PATH); //ensure that we can signal remote read requests (including file path)
-
 	int chan_type = -1;
 
-	peer_init();
-
 	printf("%s\n", "fetching node's IP address..");
-
 	printf("Process pid is %u\n", getpid());
-
-	if(g_n_nodes > 1) {
-		//Use RDMA IP when running Assise in distributed mode
-		fetch_intf_ip(rdma_intf, g_self_ip);
-		chan_type = CH_TYPE_REMOTE;
-		printf("ip address on interface \'%s\' is %s\n", rdma_intf, g_self_ip);
-	}
-	else {
-		//otherwise, default to localhost
-		fetch_intf_ip(local_intf, g_self_ip);
-		chan_type = CH_TYPE_LOCAL;
-		printf("ip address on interface \'%s\' is %s\n", local_intf, g_self_ip);
-	}
-
+		
+	//Use RDMA IP when running Assise in distributed mode
+  fetch_intf_ip(rdma_intf, g_self_ip);
+  chan_type = CH_TYPE_REMOTE;
+  printf("ip address on interface \'%s\' is %s\n", rdma_intf, g_self_ip);
 
 	printf("cluster settings:\n");
 	//create array containing all peers
-	for(int i=0; i<g_n_nodes; i++) {
-		if(i<g_n_hot_rep) {
-			g_peers[i] = clone_peer(&hot_replicas[i]);
-			g_kernfs_peers[i] = g_peers[i];
-		}
-		else if(i>=g_n_hot_rep && i<(g_n_hot_rep + g_n_hot_bkp)) {
-			g_peers[i] = clone_peer(&hot_backups[i - g_n_hot_rep]);
-			g_kernfs_peers[i] = g_peers[i];
-		}
-		else if(i>=g_n_hot_rep + g_n_hot_bkp && i<(g_n_hot_rep + g_n_hot_bkp + g_n_cold_bkp)) {
-			g_peers[i] = clone_peer(&cold_backups[i - g_n_hot_rep - g_n_hot_bkp]);
-			g_kernfs_peers[i] = g_peers[i];
-		} else {
-#if MLFS_NAMESPACES
-			g_peers[i] = clone_peer(&external_replicas[i - g_n_hot_rep - g_n_hot_bkp - g_n_cold_bkp]);
-			g_kernfs_peers[i] = g_peers[i];
-			g_kernfs_peers[i]->id = i;
-			mlfs_printf("*** %s\n", "todo: register remote log");
-			printf("--- EXTERNAL node %d - ip:%s\n", i, g_peers[i]->ip);
-			continue;
-#else
-			panic("remote namespaces defined in configuration, but disabled in Makefile!\n");
-#endif
-		}
+  g_peers[0] = clone_peer(&hot_replicas[0]);
+  g_kernfs_peers[0] = g_peers[0];
+  g_kernfs_peers[0]->id = 0;
+  //g_peers[i] = g_kernfs_peers[i];
+  register_peer_log(g_kernfs_peers[0], 0);
 
-		g_kernfs_peers[i]->id = i;
-		//g_peers[i] = g_kernfs_peers[i];
-		register_peer_log(g_kernfs_peers[i], 0);
-
-		if(!strcmp((char*)g_kernfs_peers[i]->ip, g_self_ip)) {
-			g_kernfs_id = g_kernfs_peers[i]->id;
-		}
-			
-		printf("--- node %d - ip:%s\n", i, g_peers[i]->ip);
-	}
+  if(!strcmp((char*)g_kernfs_peers[0]->ip, g_self_ip)) {
+    g_kernfs_id = g_kernfs_peers[0]->id;
+  }
+    
+  printf("--- node %d - ip:%s\n", 0, g_peers[0]->ip);
 
 	//NOTE: disable this check if we want to allow external clients (i.e. no local shared area)
 	if(g_kernfs_id == -1)

@@ -7,6 +7,7 @@
 #include "io/device.h"
 #include "io/block_io.h"
 #include "distributed/peer.h"
+#include "distributed/rpc_interface.h"
 //#include "log/log.h"
 
 #ifdef KERNFS
@@ -314,10 +315,12 @@ void print_peer_arrays()
 }
 
 void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer_id** cbs){
+#if 0
   // setup ip addresses of replicas.
   FILE* f = fopen("/tmp/mihirs_bak/replicas.conf", "r");
-  char ip_buf[20];
   char role_buf[10];
+#endif
+  char ip_buf[20];
 
   hot_replicas = calloc(g_n_hot_rep, sizeof(struct peer_id));
   *hrs = hot_replicas;
@@ -325,6 +328,14 @@ void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer
   *hbs = hot_backups;
   cold_backups = calloc(g_n_cold_bkp, sizeof(struct peer_id));
   *cbs = cold_backups;
+    
+  struct peer_id* peer = &hot_replicas[0];
+  peer->role = HOT_REPLICA;
+  fetch_intf_ip(rdma_intf, ip_buf);
+  strncpy(peer->ip, ip_buf, INET_ADDRSTRLEN);
+  peer->type = KERNFS_PEER;
+
+#if 0
   int i_hr = 0, i_hb = 0, i_cb = 0;
 
   while(fscanf(f, "%s", ip_buf) != EOF){
@@ -354,6 +365,7 @@ void setup_replica_array(struct peer_id** hrs, struct peer_id** hbs, struct peer
   // forget about freeing these arrays.
 
   fclose(f);
+#endif
 }
 
 #endif

@@ -350,7 +350,7 @@ struct peer_id* cold_backups = NULL;
 static void mlfs_rpc_init(void) {
 
 	//set memory regions to be registered by rdma device
-	int n_regions = 3;
+	int n_regions = 2;
 	struct mr_context *mrs = (struct mr_context *) mlfs_zalloc(sizeof(struct mr_context) * n_regions);
 
 	// TODO: Optimize registrations. current implementation registers unused and sometimes overlapping memory regions
@@ -391,9 +391,20 @@ static void mlfs_rpc_init(void) {
 		sprintf(port, "%d", 12345);
 	}
 
-  /* sig_cb defined in log/log.c */
+
 	init_rpc(mrs, n_regions, port, signal_callback);
 	init_log(g_self_id);
+
+	// only replicate if we have more than one node in our cluster
+	if(g_n_nodes > 1) {
+		printf("init chain replication: next replica [node %d ip - %s]\n",
+			 g_kernfs_peers[(g_kernfs_id + 1) % g_n_nodes]->id,
+			 g_kernfs_peers[(g_kernfs_id + 1) % g_n_nodes]->ip);
+		init_replication(g_self_id, g_kernfs_peers[(g_kernfs_id + 1) % g_n_nodes],
+			 g_fs_log->next_avail_header, g_fs_log->size,
+			 mrs[MR_NVM_LOG].addr,
+			 (atomic_ulong *) &g_fs_log->log_sb->end);
+	}
 }
 
 #endif
@@ -1418,17 +1429,14 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 		_fcache_block = add_to_read_cache(ip, off_aligned, NULL);
 		
     // TODO: mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
-    
-    // hit the cache.
-    //if (rpc_remote_read_async(
 
     bh->b_offset = off_aligned;
     bh->b_data = _fcache_block->data;
     bh->b_size = g_block_size_bytes;
+
+    ssd_emul_latency();
     bh_submit_read_sync_IO(bh);
     bh_release(bh);
-      
-    ssd_emul_latency();
 
     memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
   } else {
@@ -1629,7 +1637,6 @@ do_global_search:
 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
-  int in_ssd = ssd_has_blk(bmap_req.block_no);
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1653,41 +1660,44 @@ do_global_search:
   // again, we don't actually migrate things.
   assert(bmap_req.dev == g_root_dev);
 
-  // this is incorrect- assumes that first block not being in ssd implies others
-  // but if we restrict ourselves to single-block queries at a time, it's fine.
-  if (!in_ssd) {
-    g_perf_stats.nvm_hit += bmap_req.blk_count_found;
+  offset_t l = 0;
+  while (l < bmap_req.blk_count_found) {
+    offset_t start = l;
+    while (l < bmap_req.blk_count_found && !ssd_has_blk(bmap_req.block_no + l)) {
+      ++l;
+    }
 
-    bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
-    bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
+    if (l-start > 0) {
+      // all these blocks from [start,l) are in nvm.
+      g_perf_stats.nvm_hit += l-start;
 
-    bh->b_offset = 0;
-    bh->b_data = reply->dst + pos;
-    bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
+      bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no + start, BH_NO_DATA_ALLOC);
+      bh->b_size = ((l-start) << g_block_size_shift);
+      bh->b_offset = 0;
+      bh->b_data = reply->dst + pos + (start << g_block_size_shift);
 
-    list_add_tail(&bh->b_io_list, &io_list);
-
-  } else {
+      list_add_tail(&bh->b_io_list, &io_list);
+    }
+    
+    if (l == bmap_req.blk_count_found) {
+      break;
+    }
 
     // TODO: readahead
-		offset_t cur, l;
-		for (cur = _off, l = 0; l < bmap_req.blk_count_found;
-				cur += g_block_size_bytes, l++) {
-      g_perf_stats.ssd_hit++;
-			_fcache_block = add_to_read_cache(ip, cur, NULL);
+    g_perf_stats.ssd_hit++;
+    _fcache_block = add_to_read_cache(ip, _off + (l << g_block_size_shift), NULL);
 
-      bh = bh_get_sync_IO(g_root_dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
-      bh->b_data = _fcache_block->data;
-      bh->b_size = g_block_size_bytes;
-      bh->b_offset = 0;
-      list_add_tail(&bh->b_io_list, &io_list);
+    bh = bh_get_sync_IO(g_root_dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
+    bh->b_data = _fcache_block->data;
+    bh->b_size = g_block_size_bytes;
+    bh->b_offset = 0;
+    list_add_tail(&bh->b_io_list, &io_list);
 
-      ssd_emul_latency(); // not at the right time, but in the same atomic operation
+    copy_list[l].dst_buffer = reply->dst + (l << g_block_size_shift);   // TODO: is this wrong?
+    copy_list[l].cached_data = _fcache_block->data;
+    copy_list[l].size = g_block_size_bytes;
 
-			copy_list[l].dst_buffer = reply->dst + cur - _off;
-			copy_list[l].cached_data = _fcache_block->data;
-			copy_list[l].size = g_block_size_bytes;
-		}
+    ++l;
   }
 
 	/* EAGAIN happens in two cases:
