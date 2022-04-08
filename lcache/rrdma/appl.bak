@@ -1,0 +1,29 @@
+
+#include "conf_client.h"
+#include <unistd.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <stdio.h>
+
+int main()
+{
+  config_t conf;
+  init_conf(&conf);
+  start_appl_client(&conf);
+
+  while (1) {
+    pthread_mutex_lock(&(conf.mutex));
+
+    struct in_addr* addrs = conf.ips;
+    int num_addrs = conf.n;
+    for(int i = 0; i<num_addrs; ++i){
+      printf("%s\n", inet_ntoa(addrs[i]));
+    }
+
+    pthread_mutex_unlock(&(conf.mutex));
+    sleep(2);
+  }
+
+  return 0;
+}
