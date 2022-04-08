@@ -1,12 +1,16 @@
+
 #include <assert.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <numa.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 
@@ -25,6 +29,9 @@
 #include "filesystem/ssd_emulation.h"
 
 #include "distributed/rpc_interface.h"
+#include "cache/cache.h"
+#include "conf_client.h"
+
 
 #define _min(a, b) ({\
 		__typeof__(a) _a = a;\
@@ -398,6 +405,13 @@ static void mlfs_rpc_init(void) {
 
 #endif
 
+// declared in distributed/peer.h
+config_t* get_cache_conf()
+{
+  static config_t cache_conf;
+  return &cache_conf;
+}
+
 void init_fs(void)
 {
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
@@ -481,6 +495,10 @@ void init_fs(void)
 
 		clock_speed_mhz = get_cpu_clock_speed();
 
+    // initialize cache configuration
+    // a bad idea in libfs, but for simplicity it's probably fine.
+    init_conf(get_cache_conf());
+    start_appl_client(get_cache_conf());
 	}
 	else
 		mlfs_printf("LibFS already initialized. Skipping..%s\n", "");
@@ -1406,7 +1424,7 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
   // we don't actually migrate things, so shouldn't be in ssd.
   assert(bmap_req.dev == g_root_dev);
   
-  if (in_ssd) {
+  if (in_ssd && bmap_req.blk_count_found == 1) {
     g_perf_stats.ssd_hit++;
     /* update caches as if our block WAS in ssd.
      * what kinds of coherence issues can this present?
@@ -1419,16 +1437,8 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 		
     // TODO: mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
     
-    // hit the cache.
-    //if (rpc_remote_read_async(
-
-    bh->b_offset = off_aligned;
-    bh->b_data = _fcache_block->data;
-    bh->b_size = g_block_size_bytes;
-    bh_submit_read_sync_IO(bh);
-    bh_release(bh);
-      
-    ssd_emul_latency();
+    // only implement our cache in single-block case.
+    rcache_read(bmap_req.block_no, off, io_size, _fcache_block->data);
 
     memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
   } else {
@@ -1462,6 +1472,8 @@ do_io_unaligned:
 
 int do_aligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, uint32_t io_size, char *path)
 {
+  printf("offs: %d, io_size: %u\n", off, io_size);
+
 	int io_to_be_done = 0, log_patches = 0, ret, i;
 	offset_t key, _off, pos;
 	struct fcache_block *_fcache_block;
@@ -1655,8 +1667,10 @@ do_global_search:
 
   // this is incorrect- assumes that first block not being in ssd implies others
   // but if we restrict ourselves to single-block queries at a time, it's fine.
-  if (!in_ssd) {
-    g_perf_stats.nvm_hit += bmap_req.blk_count_found;
+  if (!in_ssd || bmap_req.blk_count_found != 1) {
+    if (!in_ssd) {
+      g_perf_stats.nvm_hit += bmap_req.blk_count_found;
+    }
 
     bh = bh_get_sync_IO(bmap_req.dev, bmap_req.block_no, BH_NO_DATA_ALLOC);
     bh->b_size = (bmap_req.blk_count_found << g_block_size_shift);
@@ -1668,26 +1682,18 @@ do_global_search:
     list_add_tail(&bh->b_io_list, &io_list);
 
   } else {
+    // ssd and block_ct =1!
 
     // TODO: readahead
-		offset_t cur, l;
-		for (cur = _off, l = 0; l < bmap_req.blk_count_found;
-				cur += g_block_size_bytes, l++) {
-      g_perf_stats.ssd_hit++;
-			_fcache_block = add_to_read_cache(ip, cur, NULL);
+		
+    g_perf_stats.ssd_hit++;
+    _fcache_block = add_to_read_cache(ip, _off, NULL);
 
-      bh = bh_get_sync_IO(g_root_dev, bmap_req.block_no + l, BH_NO_DATA_ALLOC);
-      bh->b_data = _fcache_block->data;
-      bh->b_size = g_block_size_bytes;
-      bh->b_offset = 0;
-      list_add_tail(&bh->b_io_list, &io_list);
+    rcache_read(bmap_req.block_no, 0, g_block_size_bytes, _fcache_block->data);
 
-      ssd_emul_latency(); // not at the right time, but in the same atomic operation
-
-			copy_list[l].dst_buffer = reply->dst + cur - _off;
-			copy_list[l].cached_data = _fcache_block->data;
-			copy_list[l].size = g_block_size_bytes;
-		}
+    copy_list[0].dst_buffer = reply->dst;
+    copy_list[0].cached_data = _fcache_block->data;
+    copy_list[0].size = g_block_size_bytes;
   }
 
 	/* EAGAIN happens in two cases:

@@ -14,7 +14,7 @@ CC=gcc
 #  List of all modules' directories
 ########
 MODULES   := io concurrency config filesystem global ds log mkfs \
-	mlfs posix storage distributed experimental intf
+	mlfs posix storage distributed experimental intf cache
 
 ########
 #  List of all modules' directories
@@ -40,10 +40,11 @@ OBJCPP    := $(patsubst src/%.cpp,build/%.o,$(SRCCPP))
 ########
 LAIO_DIR := $(abspath $(CURDIR)/lib/libaio/src)
 RDMA_DIR := $(abspath $(CURDIR)/lib/rdma)
+ACONF_DIR := $(abspath $(CURDIR)/lib/aconf)
 
-INCLUDES  := $(addprefix -I,src/ $(RDMA_DIR) $(LAIO_DIR))
+INCLUDES  := $(addprefix -I,src/ $(RDMA_DIR) $(LAIO_DIR) $(ACONF_DIR))
 
-LD_FLAGS = -lpthread -lstdc++ -lm -lnuma -lrt -L$(RDMA_DIR) -lrdmacm -libverbs -lpthread -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio
+LD_FLAGS = -lpthread -lstdc++ -lm -lnuma -lrt -L$(RDMA_DIR) -lrdmacm -libverbs -lpthread -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio -L$(ACONF_DIR) -Wl,-rpath=$(abspath $(ACONF_DIR)) -laconf
 
 #MLFS_FLAGS = -DUSE_SLAB -DLIBFS -DMLFS_INFO
 MLFS_FLAGS = -DLIBFS

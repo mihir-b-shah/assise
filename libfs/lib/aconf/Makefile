@@ -3,17 +3,15 @@ CFLAGS = -fPIC -O0 -g
 LDFLAGS = -shared
 
 RM = rm -f
-TARGET_LIB = librrdma.so
+TARGET_LIB = libaconf.so
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
 CFLAGS += -DSANITY_CHECK
 CFLAGS += -DDEBUG
-CFLAGS += -DIBV_RATE_LIMITER
-CFLAGS += -DIBV_WRAPPER_INLINE
 CFLAGS += -D_GNU_SOURCE
 
-LDLIBS = -lrdmacm -libverbs -lpthread -lrt
+LDLIBS = -lpthread
 
 .PHONY: all
 	all: ${TARGET_LIB}
