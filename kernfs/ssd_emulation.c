@@ -77,17 +77,16 @@ void destroy_ssd_emul(void)
   shm_unlink(shm_path);
 }
 
-void ssd_emul_latency(void)
+void ssd_emul_latency(clock_t opt_start)
 {
-  /*
   // syscall latency fine since an ssd write would probably have similar latency.
+  // TODO: clock() is wall clock time, this is probably fine.
   int iters = 0;
-  clock_t start = clock();
+  clock_t start = start == 0 ? clock() : start;
   while(clock() - start < CLOCKS_PER_SEC/100000){
     int i = 0;
     // avoid busy-calling clock(), so stall a little on our own too. The limit 100000 is tuneable.
     while(i < 100000){ ++i; }
     ++iters;
   }
-  */
 }

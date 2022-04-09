@@ -1344,6 +1344,9 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 #endif
 				}
 				else {
+          // check if it is a partial result!
+          fill_partials_until(ip, off);
+
 					memmove(reply->dst, _fcache_block->data + off_in_block, io_size);
 
 					// move the fcache entry to head of LRU
@@ -1438,7 +1441,10 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
     // TODO: mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
     
     // only implement our cache in single-block case.
-    rcache_read(bmap_req.block_no, off, io_size, _fcache_block->data);
+
+    struct rcache_req rreq = {.block = bmap_req.block_no, .inode = ip, .offset = off,
+                              .io_size = io_size, .dst = _fcache_block->data};
+    rcache_read(rreq); // important to pass this by value.
 
     memmove(reply->dst, _fcache_block->data + (off - off_aligned), io_size);
   } else {
@@ -1472,8 +1478,6 @@ do_io_unaligned:
 
 int do_aligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, uint32_t io_size, char *path)
 {
-  printf("offs: %d, io_size: %u\n", off, io_size);
-
 	int io_to_be_done = 0, log_patches = 0, ret, i;
 	offset_t key, _off, pos;
 	struct fcache_block *_fcache_block;
@@ -1545,6 +1549,8 @@ int do_aligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, ui
 #endif
 				}
 				else {
+          fill_partials_until(ip, off);
+
 					copy_list[pos >> g_block_size_shift].dst_buffer = reply->dst + pos;
 					copy_list[pos >> g_block_size_shift].cached_data = _fcache_block->data;
 					copy_list[pos >> g_block_size_shift].size = g_block_size_bytes;
@@ -1688,8 +1694,10 @@ do_global_search:
 		
     g_perf_stats.ssd_hit++;
     _fcache_block = add_to_read_cache(ip, _off, NULL);
-
-    rcache_read(bmap_req.block_no, 0, g_block_size_bytes, _fcache_block->data);
+    
+    struct rcache_req rreq = {.block = bmap_req.block_no, .inode = ip, .offset = 0, 
+                              .io_size = g_block_size_bytes, .dst = _fcache_block->data};
+    rcache_read(rreq); // important to pass this by value.
 
     copy_list[0].dst_buffer = reply->dst;
     copy_list[0].cached_data = _fcache_block->data;
