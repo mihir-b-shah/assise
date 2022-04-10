@@ -44,9 +44,10 @@ def server():
 
         elif message[0] == 0x43:    # C for cache node
             ib_addr = message[1:]
-            active[ib_addr] = time.time()
+            active[ib_addr] = NodeState(time.time())
             print('received heartbeat from %s'%(ib_addr))
             # send regulatory message, if necessary
+
         else:
             print('Unknown msg received.')
             # releasing lock doesn't matter.
@@ -62,17 +63,22 @@ def keyboard_input():
 
 TIMEOUT = 5
 def timeout_handler():
-    map_lock.acquire()
-    cur_time = time.time()
+    while(True):
+        map_lock.acquire()
+        cur_time = time.time()
 
-    gone = []
-    for addr, ns in active.items():
-        if cur_time - ns.last_ts > TIMEOUT:
-            gone.append(addr)
-    # two step bc of del-while-iter
-    for gone_addr in gone:
-        del active[gone_addr]
-    map_lock.release()
+        gone = []
+        for addr, ns in active.items():
+            if cur_time - ns.last_ts > TIMEOUT:
+                gone.append(addr)
+
+        print('Gone ', str(gone))
+        # two step bc of del-while-iter
+        for gone_addr in gone:
+            del active[gone_addr]
+        map_lock.release()
+
+        time.sleep(2)
 
 def run():
     timer_thread = threading.Thread(target=timeout_handler)
