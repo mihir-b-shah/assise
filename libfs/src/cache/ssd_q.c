@@ -132,10 +132,8 @@ void emul_ssd_read(struct rcache_req* req)
 
 static void fill_partial(struct q_obj* obj)
 {
-  printf("Hit fill partial_single, %s:%d\n", __FILE__, __LINE__);
   while (clock() < obj->ts);
 
-  printf("Made it to find, %s:%d\n", __FILE__, __LINE__);
   struct fcache_block* dst = fcache_find(obj->req.inode, obj->req.offset);
   if (dst == NULL) {
     // if the block itself is gone, no need to fill it from ssd!

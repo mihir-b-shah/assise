@@ -45,7 +45,7 @@ const char *test_dir_prefix = "./pmem";
 
 //#define ODIRECT
 #undef ODIRECT
-#define VERIFY
+//#define VERIFY
 
 typedef enum {SEQ_WRITE, SEQ_READ, SEQ_WRITE_READ, RAND_WRITE, RAND_READ, 
 	ZIPF_WRITE, ZIPF_READ, ZIPF_MIX, NONE} test_t;
@@ -317,36 +317,39 @@ void io_bench::do_read(void)
 	}
 
 	if (test_type == SEQ_READ || test_type == SEQ_WRITE_READ) {
-		for (unsigned long i = 0; i < file_size_bytes ; i += io_size) {
-			if (i + io_size > file_size_bytes)
-				io_size = file_size_bytes - i;
-			else
-				io_size = io_size;
+    for (unsigned long j = 0; j < file_size_bytes / (4096*16); ++j) {
+      for (unsigned long i = 0; i < 4096*16; i += io_size) {
+        if (i + io_size > file_size_bytes)
+          io_size = file_size_bytes - i;
+        else
+          io_size = io_size;
 #ifdef VERIFY
-			memset(buf, 0, io_size);
+        memset(buf, 0, io_size);
 
 #endif
-			ret = det_read(fd, buf, io_size);
+        printf("read at %lu, size:%u\n", i, io_size);
+        ret = det_pread64(fd, buf, io_size, i);
 #if 0
-			if (ret != io_size) {
-				printf("read size mismatch: return %d, request %lu\n",
-						ret, io_size);
-			}
+        if (ret != io_size) {
+          printf("read size mismatch: return %d, request %lu\n",
+              ret, io_size);
+        }
 #endif
 #ifdef VERIFY
-			// verify buffer
-			for (unsigned int j = 0; j < io_size; j++) {
-				cur_offset = i + j;
-				if (buf[j] != '0' + (cur_offset % 10)) {
-					//hexdump(buf + j, 256);
-					printf("read data mismatch at %lu\n", i);
-					printf("expected %c read %c\n", (int)('0' + (cur_offset % 10)), buf[j]);
-					exit(-1);
-					break;
-				}
-			}
+        // verify buffer
+        for (unsigned int j = 0; j < io_size; j++) {
+          cur_offset = i + j;
+          if (buf[j] != '0' + (cur_offset % 10)) {
+            //hexdump(buf + j, 256);
+            printf("read data mismatch at %lu\n", i);
+            printf("expected %c read %c\n", (int)('0' + (cur_offset % 10)), buf[j]);
+            exit(-1);
+            break;
+          }
+        }
 #endif
-		}
+      }
+    }
 	} else if (test_type == RAND_READ || test_type == ZIPF_READ) {
 		for (auto it : io_list) {
 		/*

@@ -51,8 +51,6 @@ static int decide_ask_remote(struct rcache_req* req)
  */
 void rcache_read(struct rcache_req req)
 {
-  printf("Hit rcache_read. %s:%d\n", __FILE__, __LINE__);
-
   clock_t start = clock();
 
   int ask = decide_ask_remote(&req);
@@ -69,10 +67,7 @@ void rcache_read(struct rcache_req req)
     }
   }
 
-  printf("Hit emul_ssd_read. %s:%d\n", __FILE__, __LINE__);
   emul_ssd_read(&req);
-  
-  printf("Hit ssd_emul_latency. %s:%d\n", __FILE__, __LINE__);
-  // ssd_emul_latency(start);
+  //ssd_emul_latency(start);
 }
 

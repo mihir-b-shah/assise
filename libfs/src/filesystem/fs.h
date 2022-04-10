@@ -298,6 +298,8 @@ static inline void fcache_log_del_all(struct fcache_block *fc_block)
 #ifdef KLIB_HASH
 static inline struct fcache_block *fcache_find(struct inode *inode, offset_t key)
 {
+  printf("Referenced inode %lu, and offset %lld\n in cache\n", inode->inum, key);
+
 	khiter_t k;
 	struct fcache_block *fc_block = NULL;
 
@@ -325,6 +327,8 @@ static inline struct fcache_block *fcache_find(struct inode *inode, offset_t key
 static inline struct fcache_block *fcache_alloc_add(struct inode *inode, 
 		offset_t key)
 {
+  printf("Added inode %lu, and offset %lld\n to cache\n", inode->inum, key);
+
 	struct fcache_block *fc_block;
 	khiter_t k;
 	int ret;
