@@ -80,6 +80,7 @@ void init_conf(config_t* conf)
 {
   conf->ips = NULL;
   conf->n = 0;
+  conf->version = 0;
   // ignore calling destroy...
   pthread_mutex_init(&(conf->mutex), NULL);
 }
@@ -117,12 +118,17 @@ static void* run_appl_client(void* arg)
 
     // update conf
     pthread_mutex_lock(&(conf->mutex));
+    ++(conf->version);
+
     if (conf->ips != NULL) {
       free(conf->ips);
     }
-    conf->ips = calloc(sizeof(struct in_addr), n/sizeof(uint32_t));
+    // so we can place a NIL-style element at end
+    conf->ips = calloc(sizeof(struct in_addr), 1+n/sizeof(uint32_t));
     conf->n = n/sizeof(uint32_t);
     memcpy(conf->ips, buf, n);
+    // regardless of endianness, 255.255.255.255, which is an invalid host (a broadcast addr)
+    conf->ips[conf->n].s_addr = 0xffffffffUL;
     pthread_mutex_unlock(&(conf->mutex));
 
     sleep(1);

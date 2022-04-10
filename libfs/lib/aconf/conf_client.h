@@ -7,7 +7,8 @@
 #include <netinet/in.h>
 
 struct config {
-  int n;
+  volatile int n;
+  volatile int version;
   struct in_addr* ips;
   pthread_mutex_t mutex;
 };

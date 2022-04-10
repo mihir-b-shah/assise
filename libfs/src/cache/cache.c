@@ -1,12 +1,4 @@
 
-#include "cache.h"
-
-#include "filesystem/ssd_emulation.h"
-#include "io/block_io.h"
-#include "storage/storage.h"
-#include "global/global.h"
-#include "global/util.h"
-
 /*
  * We want to emulate resolving the ssd and remote operations in parallel.
  * Traditionally, this is kind of tricky and could probably require some
@@ -31,14 +23,13 @@
  * this optimization, as I discussed in the design doc.
  */ 
 
-#define FULL_SENT 2
-#define PART_SENT 1
-#define NONE_SENT 0
+#include "cache.h"
 
-static int fetch_remote(struct rcache_req* req)
-{
-  return NONE_SENT;
-}
+#include "filesystem/ssd_emulation.h"
+#include "io/block_io.h"
+#include "storage/storage.h"
+#include "global/global.h"
+#include "global/util.h"
 
 static int decide_ask_remote(struct rcache_req* req)
 {
@@ -56,7 +47,7 @@ void rcache_read(struct rcache_req req)
   int ask = decide_ask_remote(&req);
   if (ask) {
     // perform remote cache read
-    int code = fetch_remote(&req);
+    enum fetch_res code = fetch_remote(&req);
 
     switch (code) {
     case NONE_SENT: break;
