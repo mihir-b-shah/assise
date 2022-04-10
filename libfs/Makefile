@@ -70,7 +70,7 @@ MLFS_FLAGS += -DUSE_SSD
 
 #DEBUG = -g3 -O0
 #DEBUG = -O0 -gdwarf-2 -g3 -rdynamic
-DEBUG = -g -O0
+DEBUG = -g -O0 -Wall
 #DEBUG = -g -Ofast
 #DEBUG = -O3
 

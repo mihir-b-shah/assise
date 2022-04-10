@@ -25,15 +25,28 @@
 
 #include "cache.h"
 
-#include "filesystem/ssd_emulation.h"
-#include "io/block_io.h"
-#include "storage/storage.h"
-#include "global/global.h"
-#include "global/util.h"
+#include <distributed/rpc_interface.h>
+#include <filesystem/ssd_emulation.h>
+#include <io/block_io.h>
+#include <storage/storage.h>
+#include <global/global.h>
+#include <global/util.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 static int decide_ask_remote(struct rcache_req* req)
 {
   return 0;
+}
+
+uint32_t ip_int;  // declared in cache.h.
+void init_rcache()
+{
+  init_ssd_q();
+  struct in_addr addr;
+  inet_aton(g_self_ip, &addr);
+  ip_int = addr.s_addr;
 }
 
 /*
@@ -62,7 +75,3 @@ void rcache_read(struct rcache_req req)
   //ssd_emul_latency(start);
 }
 
-void init_rcache()
-{
-  init_ssd_q();
-}

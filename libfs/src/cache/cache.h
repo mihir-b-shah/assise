@@ -13,6 +13,8 @@ struct rcache_req {
   uint8_t* dst;
 };
 
+extern uint32_t ip_int;
+
 void init_rcache(void);
 void init_ssd_q(void);
 
@@ -28,6 +30,18 @@ enum fetch_res {
   PART_SENT = 1,
   FULL_SENT = 2
 };
+
+struct conn_obj {
+  struct in_addr addr;
+  int sockfd;
+};
+struct conn_ctx {
+  struct conn_obj* conn_ring;
+  volatile int n;
+  struct in_addr my_ip;
+};
+
+struct conn_ctx* update_cache_conf();
 
 enum fetch_res fetch_remote(struct rcache_req* req);
 

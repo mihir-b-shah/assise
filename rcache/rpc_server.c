@@ -2,14 +2,12 @@
 #include <signal.h>
 #include "agent.h"
 
-volatile sig_atomic_t stop;
-
 uint64_t LOG_SIZE =  268265456UL; //256 MB
 
-void inthand(int signum)
-{	
-	stop = 1;
-}
+struct client_req {
+  int repl_id;
+  int inum;
+};
 
 void signal_callback(struct app_context *msg)
 {
@@ -70,11 +68,6 @@ int main(int argc, char **argv)
 	
 	init_rdma_agent(portno, regions, 1, 256, CH_TYPE_REMOTE, add_peer_socket, remove_peer_socket, signal_callback);
 
- 	signal(SIGINT, inthand);
-
- 	while(!stop) {
-		sleep(1);
-	}
 	free(mem);
 
 	return 0;

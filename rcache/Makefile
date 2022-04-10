@@ -1,6 +1,6 @@
-TARGET := client
+TARGET := server
 
-RR_COMMON_DIR := $(abspath $(CURDIR)/../rrdma)
+RR_COMMON_DIR := $(abspath $(CURDIR)/../libfs/lib/rdma)
 
 LIBS = -L$(RR_COMMON_DIR)
 INCLUDES := $(addprefix -I, $(RR_COMMON_DIR))
@@ -10,7 +10,7 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 
 CFLAGS = -g -O0 -std=gnu99
-LDFLAGS = -lrdmacm -libverbs -lm -lrt -lrrdma
+LDFLAGS = -lrdmacm -libverbs -lm -lrt -lrdma
 
 .PHONY: clean
 
