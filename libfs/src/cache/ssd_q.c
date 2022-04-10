@@ -47,7 +47,7 @@ static khash_t(m64) *qmap;
 /* mutex used for both */
 static pthread_mutex_t mutex;
 
-static void init()
+void init_ssd_q(void)
 {
   pthread_mutex_init(&mutex, 0);
   qmap = kh_init(m64);
@@ -149,9 +149,8 @@ static void fill_partial(struct q_obj* obj)
  */
 void fill_partials_until(struct inode* ip, off_t offs)
 {
-  printf("Hit fill partials, %s:%d\n", __FILE__, __LINE__);
-
   struct q_obj* to_fill = get_qobj(ip, offs);
+
   if (to_fill == NULL) {
     return;
   }

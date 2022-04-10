@@ -13,6 +13,9 @@ struct rcache_req {
   uint8_t* dst;
 };
 
+void init_rcache(void);
+void init_ssd_q(void);
+
 void enq_ssd_req(struct rcache_req req);
 void fill_partials_until(struct inode* ip, off_t offs);
 

@@ -419,6 +419,9 @@ void init_fs(void)
   init_ssd_emul();
   printf("initialized ssd emulation on libfs.\n");
 
+  init_rcache();
+  printf("initialized rcache on libfs.\n");
+
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
 #endif

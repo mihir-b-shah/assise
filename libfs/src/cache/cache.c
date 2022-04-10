@@ -71,3 +71,7 @@ void rcache_read(struct rcache_req req)
   //ssd_emul_latency(start);
 }
 
+void init_rcache()
+{
+  init_ssd_q();
+}
