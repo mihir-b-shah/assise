@@ -45,6 +45,7 @@ extern int g_kernfs_id;
 
 static inline uint32_t generate_rpc_seqn(struct peer_socket *sock)
 {
+  sock->seqn += 2; // all sequence numbers will be ODD- it starts at 1, if we add 2 only.
 	return ++sock->seqn;
 }
 

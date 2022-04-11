@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <pthread.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -34,7 +35,7 @@ static struct conn_obj make_conn(struct in_addr addr)
 
     char port_buf[10];
     sprintf(port_buf, "%d", CACHE_PORT_MIN);
-    int sockfd = add_connection(inet_ntoa(addr), port_buf, 0, 0, CH_TYPE_REMOTE, 1);
+    int sockfd = add_connection(inet_ntoa(addr), port_buf, 3, getpid(), CH_TYPE_REMOTE, 1);
 	
     while(!mp_is_channel_ready(sockfd)) {
       asm("");

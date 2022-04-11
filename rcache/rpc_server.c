@@ -1,12 +1,21 @@
 #include <time.h>
 #include <signal.h>
+#include <stdint.h>
 #include "agent.h"
+#include "conf_client.h"
+
+volatile sig_atomic_t stop;
+
+void inthand(int signum)
+{	
+	stop = 1;
+}
 
 uint64_t LOG_SIZE =  268265456UL; //256 MB
 
 struct client_req {
-  int repl_id;
-  int inum;
+  uint32_t repl_id;
+  uint64_t inum;
 };
 
 void signal_callback(struct app_context *msg)
@@ -19,8 +28,8 @@ void signal_callback(struct app_context *msg)
 	struct app_context *app;
 	int buffer_id = MP_ACQUIRE_BUFFER(msg->sockfd, &app);
 	app->id = msg->id; //set this to same id of received msg (to act as a response)
-  
-	MP_SEND_MSG_ASYNC(msg->sockfd, buffer_id, 0);
+ 
+	// MP_SEND_MSG_ASYNC(msg->sockfd, buffer_id, 0); - change if problematic.
 
 	rdma_meta_t *meta = (rdma_meta_t*) malloc(sizeof(rdma_meta_t) + sizeof(struct ibv_sge));
 	meta->addr = 0;
@@ -43,6 +52,10 @@ void remove_peer_socket(int sockfd)
 
 int main(int argc, char **argv)
 {
+  conf_cmd_t ccmd;
+  init_cmd(&ccmd);
+  start_cache_client(&ccmd);
+
 	char *host;
 	char *portno;
 	struct mr_context *regions;
@@ -66,8 +79,13 @@ int main(int argc, char **argv)
 	regions[0].addr = (uintptr_t) mem;
         regions[0].length = LOG_SIZE;	
 	
-	init_rdma_agent(portno, regions, 1, 256, CH_TYPE_REMOTE, add_peer_socket, remove_peer_socket, signal_callback);
+	init_rdma_agent(portno, regions, 1, 1500, CH_TYPE_REMOTE, add_peer_socket, remove_peer_socket, signal_callback);
+ 	
+  signal(SIGINT, inthand);
 
+  while (!stop) {
+    sleep(1);
+  }
 	free(mem);
 
 	return 0;

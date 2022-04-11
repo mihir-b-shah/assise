@@ -65,6 +65,12 @@ int get_next_peer_id(int id) {
 
 void add_peer_socket(int sockfd)
 {
+	int type = mp_channel_meta(sockfd);
+  if (type >= SOCK_TYPE_COUNT) {
+    // this is my cache socket, not the traditional ones for replication.
+    return;
+  }
+
 	mlfs_debug("found socket %d\n", sockfd);
 	struct peer_socket *psock = mlfs_zalloc(sizeof(struct peer_socket));
 
@@ -85,7 +91,6 @@ void add_peer_socket(int sockfd)
 		mlfs_printf("Peer connected (ip: %s, pid: %u)\n", peer->ip, peer->pid);
 	}
 
-	int type = mp_channel_meta(sockfd);
 	mlfs_assert(type < SOCK_TYPE_COUNT);
 
 	peer->sockfd[type] = sockfd;
@@ -106,6 +111,12 @@ void add_peer_socket(int sockfd)
 
 void remove_peer_socket(int sockfd)
 {
+	int type = mp_channel_meta(sockfd);
+  if (type >= SOCK_TYPE_COUNT) {
+    // this is my cache socket, not the traditional ones for replication.
+    return;
+  }
+
 	//struct peer_id *peer = find_peer(sockfd);
 	struct peer_id *peer = g_rpc_socks[sockfd]->peer;
 	mlfs_assert(peer);

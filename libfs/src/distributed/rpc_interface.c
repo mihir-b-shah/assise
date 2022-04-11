@@ -6,6 +6,7 @@
 #else
 #include "filesystem/fs.h"
 #include "mlfs/mlfs_interface.h"
+#include "cache/cache.h"
 #endif
 
 #ifdef DISTRIBUTED
@@ -147,6 +148,19 @@ int init_rpc(struct mr_context *regions, int n_regions, char *listen_port, signa
 	printf("%s\n", "MLFS cluster initialized");
 
 		//gettimeofday(&start_time, NULL);
+  
+  /*
+#ifdef LIBFS
+  struct rcache_req req;
+  req.block = 4;
+  
+  while (1) { 
+    fetch_remote(&req);
+    sleep(1);
+  }
+  exit(0);
+#endif
+  */
 }
 
 int shutdown_rpc()

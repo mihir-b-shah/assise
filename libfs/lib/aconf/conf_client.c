@@ -108,7 +108,9 @@ static void* run_appl_client(void* arg)
   char buf[BUFSIZE];
   struct sockaddr_in server_addr;
   
+  printf("Started application conf monitoring thread.\n");
   setup_conn(&sockfd, &server_addr);
+  printf("Setup conn for appl_client.\n");
   
   while (1) {
     /* build the server's Internet address */
@@ -127,6 +129,9 @@ static void* run_appl_client(void* arg)
     conf->ips = calloc(sizeof(struct in_addr), 1+n/sizeof(uint32_t));
     conf->n = n/sizeof(uint32_t);
     memcpy(conf->ips, buf, n);
+
+    printf("Updated configuration with conf->n:%d\n", conf->n);
+
     // regardless of endianness, 255.255.255.255, which is an invalid host (a broadcast addr)
     conf->ips[conf->n].s_addr = 0xffffffffUL;
     pthread_mutex_unlock(&(conf->mutex));

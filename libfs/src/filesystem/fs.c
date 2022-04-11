@@ -419,9 +419,6 @@ void init_fs(void)
   init_ssd_emul();
   printf("initialized ssd emulation on libfs.\n");
 
-  init_rcache();
-  printf("initialized rcache on libfs.\n");
-
 #ifdef USE_SLAB
 	unsigned long memsize_gb = 4;
 #endif
@@ -502,6 +499,9 @@ void init_fs(void)
     // a bad idea in libfs, but for simplicity it's probably fine.
     init_conf(get_cache_conf());
     start_appl_client(get_cache_conf());
+    
+    init_rcache();
+    printf("initialized rcache on libfs.\n");
 	}
 	else
 		mlfs_printf("LibFS already initialized. Skipping..%s\n", "");

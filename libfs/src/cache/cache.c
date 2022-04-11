@@ -37,7 +37,7 @@
 
 static int decide_ask_remote(struct rcache_req* req)
 {
-  return 0;
+  return 1;
 }
 
 uint32_t ip_int;  // declared in cache.h.

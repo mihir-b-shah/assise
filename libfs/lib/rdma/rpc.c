@@ -64,9 +64,24 @@ void MP_AWAIT_RESPONSE(int sockfd, uint32_t app_id)
 
 	//FIXME: set proper wraparound for when app_id exceeds uint32_t limit
 	//while(ctx->last_rcv_compl < app_id || ((ctx->last_rcv_compl - app_id) > MAX_PENDING)) {
-	while(ctx->last_rcv_compl < app_id) {
+	while(ctx->last_rcv_compl != app_id) {
 		ibw_cpu_relax();
 	}
+}
+
+uint32_t MP_AWAIT_RESPONSE_MASK(int sockfd, uint32_t app_id, uint32_t mask)
+{
+	struct conn_context *ctx = get_channel_ctx(sockfd);
+
+	debug_print("spinning till response with seqn %u (last received seqn -> %u)\n",
+			app_id, last_compl_wr_id(ctx, 0));
+
+	//FIXME: set proper wraparound for when app_id exceeds uint32_t limit
+	//while(ctx->last_rcv_compl < app_id || ((ctx->last_rcv_compl - app_id) > MAX_PENDING)) {
+	while((ctx->last_rcv_compl & mask) != app_id) {
+		ibw_cpu_relax();
+	}
+  return ctx->last_rcv_compl;
 }
 
 /* Wait till a send work request is completed.
