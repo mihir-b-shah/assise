@@ -66,12 +66,8 @@ void MP_AWAIT_RESPONSE(int sockfd, uint32_t app_id)
 	//while(ctx->last_rcv_compl < app_id || ((ctx->last_rcv_compl - app_id) > MAX_PENDING)) {
   //
   
-  debug_print("Ctx: %p\n", ctx);
-
 	while(ctx->last_rcv_compl != app_id) {
 		ibw_cpu_relax();
-    debug_print("Ctx: %p\n", ctx);
-    debug_print("last_rcv_compl: %u\n", ctx->last_rcv_compl);
 	}
 }
 

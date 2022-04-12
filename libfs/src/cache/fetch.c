@@ -4,6 +4,7 @@
 struct client_req {
   uint32_t node_num;
   uint64_t block_num;
+  uint8_t* dst;
 };
 
 static volatile uint32_t glob_seqn = 2;
@@ -17,32 +18,29 @@ enum fetch_res fetch_remote(struct rcache_req* req)
     return NONE_SENT;
   }
 
-  printf("Reached %d\n", __LINE__);
-
   int sockfd = ctx->conn_ring[0].sockfd;
-
-  printf("sockfd: %d\n", sockfd);
 
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
   uint32_t seqn = glob_seqn;   // should only have one oustanding request at a time- we wait immediately.
   
-  printf("Reached %d\n", __LINE__);
-
   glob_seqn += 2;
 
-  struct client_req body = {.node_num = ip_int, .block_num = req->block};
+  struct client_req body = {.node_num = ip_int, .block_num = req->block, .dst = req->dst};
   
-  printf("Reached %d\n", __LINE__);
-
   app->id = seqn;
   memcpy(app->data, &body, sizeof(body));
   app->data[sizeof(body)] = '\0';
 
   MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
-  printf("Reached %d\n", __LINE__);
   MP_AWAIT_RESPONSE(sockfd, seqn);
-  printf("Reached %d\n", __LINE__);
+
+  uint8_t* sent_buf = req->dst;
+  for (int i = 0; i<g_block_size_bytes; ++i) {
+    assert(sent_buf[i] == 'C');
+  }
+
+  printf("Performed read with seqn:%u\n", seqn);
 
   /*
   uint32_t imm = MP_AWAIT_RESPONSE_MASK(sockfd, seqn, 0x3);
