@@ -25,12 +25,6 @@ void signal_callback(struct app_context *msg)
 
 	printf("received from client msg[%d] with the following repl_id: %u, inum: %lu\n", msg->id, req.repl_id, req.inum);
 
-	struct app_context *app;
-	int buffer_id = MP_ACQUIRE_BUFFER(msg->sockfd, &app);
-	app->id = msg->id; //set this to same id of received msg (to act as a response)
- 
-	// MP_SEND_MSG_ASYNC(msg->sockfd, buffer_id, 0); - change if problematic.
-
 	rdma_meta_t *meta = (rdma_meta_t*) malloc(sizeof(rdma_meta_t) + sizeof(struct ibv_sge));
 	meta->addr = 0;
 	meta->length =0;
