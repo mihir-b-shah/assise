@@ -23,7 +23,7 @@ void signal_callback(struct app_context *msg)
   struct client_req req;
   memcpy(&req, msg->data, sizeof(struct client_req));
 
-	printf("received from client msg[%d] with the following repl_id: %d, inum: %d\n", msg->id, req.repl_id, req.inum);
+	printf("received from client msg[%d] with the following repl_id: %u, inum: %lu\n", msg->id, req.repl_id, req.inum);
 
 	struct app_context *app;
 	int buffer_id = MP_ACQUIRE_BUFFER(msg->sockfd, &app);

@@ -6,7 +6,7 @@ struct client_req {
   uint64_t block_num;
 };
 
-static volatile uint32_t glob_seqn = 1;
+static volatile uint32_t glob_seqn = 2;
 
 enum fetch_res fetch_remote(struct rcache_req* req)
 {
@@ -24,12 +24,12 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   printf("sockfd: %d\n", sockfd);
 
   struct app_context* app;
-  int buffer_id = MP_ACQUIRE_BUFFER(0, &app);
+  int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
   uint32_t seqn = glob_seqn;   // should only have one oustanding request at a time- we wait immediately.
   
   printf("Reached %d\n", __LINE__);
 
-  ++glob_seqn;
+  glob_seqn += 2;
 
   struct client_req body = {.node_num = ip_int, .block_num = req->block};
   

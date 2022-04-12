@@ -1498,7 +1498,9 @@ void signal_callback(struct app_context *msg)
 #endif
 	}
 	else if(cmd_hdr[0] == 'i') { //immediate completions are replication notifications
-		clear_peer_syncing(get_next_peer(), msg->id);
+    if (msg->id % 2 == 1) {
+		  clear_peer_syncing(get_next_peer(), msg->id);
+    }
 	}
 	else if(cmd_hdr[0] == 'a') //ack (ignore)
 		return;
