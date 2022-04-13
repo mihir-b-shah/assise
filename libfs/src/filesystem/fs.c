@@ -29,9 +29,9 @@
 #include "filesystem/ssd_emulation.h"
 
 #include "distributed/rpc_interface.h"
+#include "conf/conf.h"
 #include "cache/cache.h"
 #include "conf_client.h"
-
 
 #define _min(a, b) ({\
 		__typeof__(a) _a = a;\
@@ -405,7 +405,6 @@ static void mlfs_rpc_init(void) {
 
 #endif
 
-// declared in distributed/peer.h
 config_t* get_cache_conf()
 {
   static config_t cache_conf;

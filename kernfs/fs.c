@@ -27,6 +27,9 @@
 #include "distributed/replication.h"
 #endif
 
+#include "conf/conf.h"
+#include "conf_client.h"
+
 #define _min(a, b) ({\
 		__typeof__(a) _a = a;\
 		__typeof__(b) _b = b;\
@@ -2081,6 +2084,12 @@ struct peer_id* hot_replicas = NULL;
 struct peer_id* hot_backups = NULL;
 struct peer_id* cold_backups = NULL;
 
+config_t* get_cache_conf()
+{
+  static config_t cache_conf;
+  return &cache_conf;
+}
+
 void init_fs(void)
 {
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
@@ -2210,6 +2219,11 @@ void init_fs(void)
 	}
 	init_rpc(mrs, n_regions, port, signal_callback);
 #endif
+    
+  // initialize cache configuration
+  // a bad idea in libfs, but for simplicity it's probably fine.
+  init_conf(get_cache_conf());
+  start_appl_client(get_cache_conf());
 
 	wait_for_event();
 }

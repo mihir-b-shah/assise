@@ -14,7 +14,7 @@ CC=gcc
 #  List of all modules' directories
 ########
 MODULES   := io concurrency config filesystem global ds log mkfs \
-	mlfs posix storage distributed experimental intf cache
+	mlfs posix storage distributed experimental intf cache conf
 
 ########
 #  List of all modules' directories

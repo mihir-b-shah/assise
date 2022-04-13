@@ -5,7 +5,7 @@
 #
 ########
 
-SUBDIR	:= io cache concurrency global ds mlfs storage filesystem distributed experimental .
+SUBDIR	:= io conf cache concurrency global ds mlfs storage filesystem distributed experimental .
 
 SRC_DIR   := $(addprefix , $(SUBDIR))
 BUILD_DIR := $(addprefix build/, $(SUBDIR))
@@ -26,10 +26,11 @@ HDER := $(foreach sdir, $(SRC_DIR), $(wildcard $(sdir)/*.h)) $(wildcard storage/
 ########
 LAIO_DIR := $(abspath $(LIBFS_DIR)/lib/libaio/src)
 RDMA_DIR := $(abspath $(LIBFS_DIR)/lib/rdma)
+ACONF_DIR := $(abspath $(LIBFS_DIR)/lib/aconf)
 
-INCLUDES  := $(addprefix -I, . $(LAIO_DIR) $(RDMA_DIR))
+INCLUDES  := $(addprefix -I, . $(LAIO_DIR) $(RDMA_DIR) $(ACONF_DIR))
 
-LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio
+LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio -L$(ACONF_DIR) -Wl,-rpath=$(abspath $(ACONF_DIR)) -laconf
 
 #MLFS_FLAGS = -DUSE_SLAB -DMLFS_INFO -DKERNFS
 MLFS_FLAGS = -DKERNFS

@@ -1,5 +1,6 @@
 
 #include "cache.h"
+#include <conf/conf.h>
 
 struct client_req {
   uint32_t node_num;
