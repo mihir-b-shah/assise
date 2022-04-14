@@ -14,6 +14,9 @@ struct conn_ctx {
   volatile int n;
 };
 
+uint32_t ip_int; // my ip, as an integer.
+void setup_appl_conf();
+
 struct conn_ctx* update_cache_conf();
 config_t* get_cache_conf();
 

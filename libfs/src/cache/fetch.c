@@ -30,8 +30,8 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   struct client_req body = {.node_num = ip_int, .block_num = req->block, .dst = req->dst};
   
   app->id = seqn;
-  memcpy(app->data, &body, sizeof(body));
-  app->data[sizeof(body)] = '\0';
+  app->data[0] = 'R';
+  memcpy(1+app->data, &body, sizeof(body));
 
   MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
   MP_AWAIT_RESPONSE(sockfd, seqn);

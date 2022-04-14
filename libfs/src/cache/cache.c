@@ -40,13 +40,9 @@ static int decide_ask_remote(struct rcache_req* req)
   return 1;
 }
 
-uint32_t ip_int;  // declared in cache.h.
 void init_rcache()
 {
   init_ssd_q();
-  struct in_addr addr;
-  inet_aton(g_self_ip, &addr);
-  ip_int = addr.s_addr;
 }
 
 /*

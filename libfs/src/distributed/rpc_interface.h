@@ -17,7 +17,7 @@
 #include "replication.h"
 #include "peer.h"
 
-#define RPC_MSG_BYTES 1500
+#define RPC_MSG_BYTES 4200 // :(
 #define RPC_MSG_NBUFF 8
 
 // RDMA interface name

@@ -2224,6 +2224,7 @@ void init_fs(void)
   // a bad idea in libfs, but for simplicity it's probably fine.
   init_conf(get_cache_conf());
   start_appl_client(get_cache_conf());
+  setup_appl_conf();
 
 	wait_for_event();
 }

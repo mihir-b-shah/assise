@@ -11,7 +11,18 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <distributed/rpc_interface.h>
+
 static volatile int loc_version = -1;
+
+uint32_t ip_int = 0; // declared in the header file.
+
+void setup_appl_conf()
+{
+  struct in_addr addr;
+  inet_aton(g_self_ip, &addr);
+  ip_int = addr.s_addr;
+}
 
 static struct conn_ctx ctx = {.conn_ring = NULL, .n = 0};
 

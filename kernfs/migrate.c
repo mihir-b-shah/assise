@@ -7,6 +7,8 @@
 #include "filesystem/slru.h"
 #include "ssd_emulation.h"
 
+#include "cache/cache.h"
+
 lru_node_t *g_lru_hash[g_n_devices + 1];
 struct lru g_lru[g_n_devices + 1];
 struct lru g_stage_lru[g_n_devices + 1];
@@ -167,6 +169,7 @@ int migrate_blocks(uint8_t from_dev, uint8_t to_dev, isolated_list_t *migrate_li
 		HASH_DEL(g_lru_hash[from_dev], l);
 
     send_to_ssd(l->key.block);
+    send_to_rcache(l->key.block);
 	}
 
   /*
