@@ -1,3 +1,4 @@
+
 #include <time.h>
 #include <assert.h>
 #include <signal.h>
@@ -6,6 +7,11 @@
 #include "agent.h"
 #include "conf_client.h"
 
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/shm.h>
+
 volatile sig_atomic_t stop;
 
 void inthand(int signum)
@@ -13,8 +19,8 @@ void inthand(int signum)
 	stop = 1;
 }
 
-uint64_t LOG_SIZE =  268265456UL; //256 MB
-char* mem = NULL;
+uint8_t* base = NULL;
+size_t MEM_SIZE = 6000000000;
 
 struct client_req {
   uint32_t node_num;
@@ -57,7 +63,7 @@ void signal_callback(struct app_context *msg)
     meta->next = NULL;
 
     // take advantage of zero length array at end of rdma_meta_t
-    meta->sge_entries[0].addr = (uintptr_t) mem;
+    meta->sge_entries[0].addr = (uintptr_t) base;
     meta->sge_entries[0].length = BLOCK_SIZE;
 
     IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, MR_RCACHE, MR_DRAM_CACHE);
@@ -90,6 +96,15 @@ int main(int argc, char **argv)
   init_cmd(&ccmd);
   start_cache_client(&ccmd);
 
+  int fd = shm_open("rcache", O_CREAT | O_RDWR, ALLPERMS);
+	if (fd < 0) {
+		fprintf(stderr, "cannot open rcache");
+		exit(-1);
+	}
+
+  ftruncate(fd, MEM_SIZE);
+  base = mmap(NULL, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+
 	char *host;
 	char *portno;
 	struct mr_context *regions;
@@ -107,10 +122,9 @@ int main(int argc, char **argv)
 	regions = (struct mr_context *) calloc(1, sizeof(struct mr_context));
 
 	//allocate memory
-	posix_memalign((void**) &mem, sysconf(_SC_PAGESIZE), LOG_SIZE);
 	regions[0].type = 0;
-	regions[0].addr = (uintptr_t) mem;
-  regions[0].length = LOG_SIZE;	
+	regions[0].addr = (uintptr_t) base;
+  regions[0].length = MEM_SIZE;
 
   // send verifiable trash for now
   for (int i = 0; i<4096; ++i) {
@@ -124,7 +138,7 @@ int main(int argc, char **argv)
   while (!stop) {
     sleep(1);
   }
-	free(mem);
+  munmap(base);
 
 	return 0;
 }

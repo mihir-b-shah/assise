@@ -1,10 +1,9 @@
 
 #include <conf/conf.h>
-#include <assert.h>
-#include "cache.h"
-
-#include "agent.h"
 #include <global/global.h>
+#include "cache.h"
+#include "agent.h"
+#include <assert.h>
 
 static volatile uint32_t glob_seqn = 2;
 
