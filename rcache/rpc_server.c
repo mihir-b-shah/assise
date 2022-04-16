@@ -6,6 +6,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "agent.h"
 #include "conf_client.h"
 
@@ -84,11 +85,16 @@ void signal_callback(struct app_context *msg)
     uint8_t* blk = blk_alloc();
 
     struct send_req req;
+
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
     memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
+    
+    printf("write req from node %x with block %d\n", req.node_num, req.block_num);
 
     uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
-    blk_free(to_free);
+    if (to_free) {
+      blk_free(to_free);
+    }
   } else {
     printf("Odd message received.\n");
     exit(0);

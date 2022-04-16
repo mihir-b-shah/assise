@@ -35,6 +35,8 @@ void send_to_rcache(uint64_t block)
   memcpy(1+app->data, &body, sizeof(body));
   g_bdev[g_root_dev]->storage_engine->read(g_root_dev, 1+sizeof(body)+app->data, block, g_block_size_bytes);
 
+  printf("*** Sent block %d\n", block);
+
   // we are asking for a particular block.
   MP_SEND_MSG_SYNC(sockfd, buffer_id, 0);
 
