@@ -15,8 +15,6 @@ static volatile uint32_t glob_seqn = 2;
 
 enum fetch_res fetch_remote(struct rcache_req* req)
 {
-  printf("Hit fetch_remote.\n");
-
   struct conn_ctx* ctx = update_cache_conf();
   if (ctx->n == 0) {
     return NONE_SENT;
@@ -40,13 +38,13 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   
   uint32_t imm = MP_AWAIT_RESPONSE_MASK(sockfd, seqn, SEQN_MASK);
 
+  printf("Performed read with imm=%x, seqn=%x\n", imm, seqn);
+
   if (imm & PRESENT_MASK) {
     return FULL_SENT;
   } else {
     return NONE_SENT;
   }
-
-  printf("Performed read with seqn:%u\n", seqn);
 
   /*
   uint32_t imm = MP_AWAIT_RESPONSE_MASK(sockfd, seqn, 0x3);
@@ -59,5 +57,4 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   */
 
   // obviously change, but for preliminary experiments...
-  return FULL_SENT;
 }

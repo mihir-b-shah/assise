@@ -12,8 +12,8 @@ CC_SRCS = $(wildcard *.cc)
 C_OBJS = $(C_SRCS:.c=.oc)
 CC_OBJS = $(CC_SRCS:.cc=.ocx)
 
-CFLAGS = -g -O0 -std=gnu99
-CXXFLAGS = -g -O0 -std=c++11
+CFLAGS = -g -O2 -std=gnu99
+CXXFLAGS = -g -O2 -std=c++11
 LDFLAGS = -lrdmacm -libverbs -lm -lrt -lrdma -laconf -lstdc++
 
 .PHONY: all clean

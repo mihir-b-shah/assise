@@ -45,7 +45,7 @@ const char *test_dir_prefix = "./pmem";
 
 //#define ODIRECT
 #undef ODIRECT
-//#define VERIFY
+#define VERIFY
 
 typedef enum {SEQ_WRITE, SEQ_READ, SEQ_WRITE_READ, RAND_WRITE, RAND_READ, 
 	ZIPF_WRITE, ZIPF_READ, ZIPF_MIX, NONE} test_t;
@@ -550,7 +550,7 @@ void io_bench::show_usage(const char *prog)
 {
 	std::cerr << "usage: " << prog
 		<< " [-d <directory>] <sr/sw/rr/rw/zr/zw/zm/wr>"
-		<< " <size: X{G,M,K,P}, eg: 100M> <IO size, e.g.: 4K> <# of thread>\n"
+		<< " <size: X{G,M,K,P}, eg: 100M> <IO size, e.g.: 4K> <id of thread>\n"
       << endl;
 
 	std::cerr << "*workload types*\n"
@@ -593,7 +593,7 @@ int process_opt_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-	int n_threads, i;
+	int id_thread, i;
 	std::vector<io_bench *> io_workers;
 	unsigned long file_size_bytes;
 	unsigned int io_size = 0;
@@ -614,21 +614,19 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 
-	n_threads = std::stoi(argv[4]);
+	id_thread = std::stoi(argv[4]);
 
 	file_size_bytes = io_bench::str_to_size(argv[2]);
 	io_size = io_bench::str_to_size(argv[3]);
   
 	std::cout << "Total file size: " << file_size_bytes << "B" << endl
 		<< "io size: " << io_size << "B" << endl
-		<< "# of thread: " << n_threads << endl;
+		<< "id of thread: " << id_thread << endl;
 
-	for (i = 0; i < n_threads; i++) {
-		io_workers.push_back(new io_bench(i, 
-					file_size_bytes,
-					io_size,
-					io_bench::get_test_type(argv[1])));
-	}
+  io_workers.push_back(new io_bench(id_thread,
+        file_size_bytes,
+        io_size,
+        io_bench::get_test_type(argv[1])));
 
 	time_stats_init(&main_stats, 1);
 	time_stats_init(&total_stats, 1);
@@ -680,7 +678,7 @@ int main(int argc, char *argv[])
 	time_stats_print(&main_stats, (char *)"--------------- stats");
 
 	printf("Aggregated throughput: %3.3f MB\n",
-			((float)n_threads * (float)((file_size_bytes) >> 20))
+			((float)((file_size_bytes) >> 20))
 			/ (float) time_stats_get_avg(&main_stats));
 	printf("--------------------------------------------\n");
 

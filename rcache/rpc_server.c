@@ -73,6 +73,8 @@ void signal_callback(struct app_context *msg)
       meta->length = 0;
     }
 
+    printf("responding with imm:%x, len:%d\n", meta->imm, meta->length);
+
     meta->sge_count = 1;
     meta->next = NULL;
 

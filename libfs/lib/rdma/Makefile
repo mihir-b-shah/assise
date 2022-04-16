@@ -9,7 +9,7 @@ SRCS = agent.c core_ch.c rdma_ch.c shmem_ch.c verbs.c mr.c messaging.c rpc.c uti
 OBJS = $(SRCS:.c=.o)
 
 CFLAGS += -DSANITY_CHECK
-CFLAGS += -DDEBUG
+#CFLAGS += -DDEBUG
 CFLAGS += -DIBV_RATE_LIMITER
 CFLAGS += -DIBV_WRAPPER_INLINE
 CFLAGS += -D_GNU_SOURCE
