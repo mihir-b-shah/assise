@@ -1,6 +1,9 @@
 
 #include <conf/conf.h>
 #include <global/global.h>
+#include <io/block_io.h>
+#include <io/device.h>
+#include <storage/storage.h>
 #include "cache.h"
 #include "agent.h"
 #include <assert.h>
@@ -26,14 +29,11 @@ void send_to_rcache(uint64_t block)
   struct send_req body = {.repl_id = ip_int, .block = block};
   
   // just send the block! dumb dumb
-    
+  
   app->id = seqn;
   app->data[0] = 'W';
   memcpy(1+app->data, &body, sizeof(body));
-
-  for (int i = 0; i<g_block_size_bytes; ++i) {
-    app->data[1+sizeof(body)+i] = 'C';
-  }
+  g_bdev[g_root_dev]->storage_engine->read(g_root_dev, 1+sizeof(body)+app->data, block, g_block_size_bytes);
 
   // we are asking for a particular block.
   MP_SEND_MSG_SYNC(sockfd, buffer_id, 0);

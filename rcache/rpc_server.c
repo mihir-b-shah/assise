@@ -1,4 +1,6 @@
 
+#include "rcache.h"
+
 #include <time.h>
 #include <assert.h>
 #include <signal.h>
@@ -20,7 +22,7 @@ void inthand(int signum)
 }
 
 uint8_t* base = NULL;
-size_t MEM_SIZE = 6000000000;
+size_t MEM_SIZE = 0x200000000;
 
 struct client_req {
   uint32_t node_num;
@@ -29,15 +31,18 @@ struct client_req {
 };
 
 struct send_req {
-  uint32_t repl_id;
-  uint64_t block;
-  uint8_t data[4096]; // zero length struct
+  uint32_t node_num;
+  uint64_t block_num;
 };
+
+static uint64_t make_block_num(uint32_t node, uint64_t block)
+{
+  assert(block >> 32 == 0); // makes sense- 32 bit block number allows >8 TB of memory.
+  return ((uint64_t) node << 32) | block;
+}
 
 #define MR_RCACHE 0
 #define MR_DRAM_CACHE 2
-
-#define BLOCK_SIZE 4096
 
 void signal_callback(struct app_context *msg)
 {
@@ -45,7 +50,7 @@ void signal_callback(struct app_context *msg)
     struct client_req req;
     memcpy(&req, 1+msg->data, sizeof(struct client_req));
 
-    printf("received from client msg[%d] with the following repl_id: %u, blk: %lu, dst: %p\n",
+    printf("received from client msg[%d] with the following node_num: %u, blk: %lu, dst: %p\n",
       msg->id, req.node_num, req.block_num, req.dst);
 
     /* scatter gather is the sge- allows us to read/write to non-contigious memory locations in one go, into a single 
@@ -55,40 +60,43 @@ void signal_callback(struct app_context *msg)
 
     // base addr to copy from- TODO: pointing at a shared memory region is problematic- pin the block?
     meta->addr = (uintptr_t) req.dst;
-    meta->length = BLOCK_SIZE;
 
-    // set immediate to sequence number (TBD)
-    meta->imm = msg->id;
+    // find our block.
+    uint8_t* blk = lru_get_block(make_block_num(req.node_num, req.block_num));
+    // set immediate to sequence number and a present bit
+    if (blk != NULL) {
+      meta->imm = msg->id | 0x80000000UL;
+      meta->length = BLK_SIZE;
+    } else {
+      meta->imm = msg->id;
+      meta->length = 0;
+    }
+
     meta->sge_count = 1;
     meta->next = NULL;
 
     // take advantage of zero length array at end of rdma_meta_t
-    meta->sge_entries[0].addr = (uintptr_t) base;
-    meta->sge_entries[0].length = BLOCK_SIZE;
+    meta->sge_entries[0].addr = (uintptr_t) blk;
+    meta->sge_entries[0].length = BLK_SIZE;
 
     IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, MR_RCACHE, MR_DRAM_CACHE);
   } else if (msg->data[0] == 'W') {
+    uint8_t* blk = blk_alloc();
+
     struct send_req req;
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
+    memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
 
-    for (int i = 0; i<4096; ++i) {
-      assert(req.data[i] == 'C');
-    }
+    uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
+    blk_free(to_free);
   } else {
     printf("Odd message received.\n");
     exit(0);
   }
 }
 
-void add_peer_socket(int sockfd)
-{
-	;
-}
-
-void remove_peer_socket(int sockfd)
-{
-	;
-}
+void add_peer_socket(int sockfd) {}
+void remove_peer_socket(int sockfd) {}
 
 int main(int argc, char **argv)
 {
@@ -104,6 +112,9 @@ int main(int argc, char **argv)
 
   ftruncate(fd, MEM_SIZE);
   base = mmap(NULL, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+
+  blk_init(base, MEM_SIZE);
+  lru_init(MEM_SIZE / BLK_SIZE);
 
 	char *host;
 	char *portno;
@@ -126,11 +137,6 @@ int main(int argc, char **argv)
 	regions[0].addr = (uintptr_t) base;
   regions[0].length = MEM_SIZE;
 
-  // send verifiable trash for now
-  for (int i = 0; i<4096; ++i) {
-    mem[i] = 'C';
-  }
-	
 	init_rdma_agent(portno, regions, 1, 4200, CH_TYPE_REMOTE, add_peer_socket, remove_peer_socket, signal_callback);
  	
   signal(SIGINT, inthand);
@@ -138,7 +144,7 @@ int main(int argc, char **argv)
   while (!stop) {
     sleep(1);
   }
-  munmap(base);
+  munmap(base, MEM_SIZE);
 
 	return 0;
 }
