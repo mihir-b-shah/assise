@@ -1,9 +1,11 @@
+
 #include <sys/epoll.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "mlfs/mlfs_user.h"
 #include "global/global.h"
@@ -2235,6 +2237,9 @@ void init_fs(void)
 #ifdef DISTRIBUTED
 void signal_callback(struct app_context *msg)
 {
+  static pthread_mutex_t sig_lock = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutex_lock(&sig_lock);
+
 	char cmd_hdr[12];
 	// handles 4 message types (bootstrap, log, digest, lease)
 	if(msg->data) {
@@ -2443,12 +2448,17 @@ void signal_callback(struct app_context *msg)
 		rpc_register_log_response(msg->sockfd, msg->id);
 	}
 	else if(cmd_hdr[0] == 'p' && !g_self_id) { //log registration response (ignore)
+    pthread_mutex_unlock(&sig_lock);
 		return;
 	}
-	else if(cmd_hdr[0] == 'a') //ack (ignore)
+	else if(cmd_hdr[0] == 'a') { //ack (ignore)
+    pthread_mutex_unlock(&sig_lock);
 		return;
+  }
 	else
 		panic("unidentified remote signal\n");
+  
+  pthread_mutex_unlock(&sig_lock);
 }
 #endif
 

@@ -317,7 +317,7 @@ void io_bench::do_read(void)
 	}
 
 	if (test_type == SEQ_READ || test_type == SEQ_WRITE_READ) {
-    for (unsigned long j = 0; j < file_size_bytes / (4096*16); ++j) {
+    for (unsigned long j = 0; j < 2 /*file_size_bytes / (4096*16)*/; ++j) {
       for (unsigned long i = 0; i < 4096*16; i += io_size) {
         if (i + io_size > file_size_bytes)
           io_size = file_size_bytes - i;

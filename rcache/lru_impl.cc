@@ -24,7 +24,12 @@ extern "C" void lru_init(size_t n_blocks_)
 extern "C" uint8_t* lru_insert_block(uint64_t block, uint8_t* data)
 {
   auto iter = lru_map.find(block);
-  assert(iter == lru_map.end());
+  if (iter != lru_map.end()) {
+    //assert(0);
+    auto& list_iter = iter->second;
+    list_iter->data = data;
+    return nullptr;
+  }
 
   if (lru_map.size() == n_blocks) {
     // evict the lru

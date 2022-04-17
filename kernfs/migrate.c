@@ -1,3 +1,4 @@
+
 #include "fs.h"
 #include "ds/list.h"
 #include "ds/khash.h"
@@ -166,6 +167,9 @@ int migrate_blocks(uint8_t from_dev, uint8_t to_dev, isolated_list_t *migrate_li
 		from_lru->n--;
 		list_del_init(&l->list);
 		migrated_success++;
+
+    //printf("Sending block %lu\n", l->key.block);
+
 		HASH_DEL(g_lru_hash[from_dev], l);
 
     send_to_ssd(l->key.block);
@@ -236,6 +240,7 @@ do_force_migration:
   
   //printf("*** from_lru size: %lu\n", from_lru->n);
 
+
   // TODO: number of tries to migrate- right now, just once
   while(ret < nr_blocks){
     //printf("*** ran inside loop.\n");
@@ -251,7 +256,7 @@ do_force_migration:
       migrate_list.n++;
 
       i++;
-
+      
       mlfs_debug("try migrate (%d->%d): iter %d inum %d offset %lu(0x%lx) phys %lu\n", 
           i, from_dev, to_dev, node->val.inum, node->val.lblock, 
           node->val.lblock, node->key.block);
@@ -259,14 +264,9 @@ do_force_migration:
       if (i >= n_entries)
         break;
     }
-    // ensure forward progress
-    int liveliness_factor = 1;
-	  if (used_blocks - num_migr > datablocks / 4) {
-      liveliness_factor = 0;
-    }
-    ret += liveliness_factor + migrate_blocks(from_dev, to_dev, &migrate_list, swap);
+    ret += migrate_blocks(from_dev, to_dev, &migrate_list, swap);
   }
-
+  
 	return 0;
 #endif // MIGRATION
 }
