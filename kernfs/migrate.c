@@ -22,7 +22,7 @@ pthread_spinlock_t lru_spinlock;
 // 3: g_hdd_dev (not used)
 // 4~ unused
 int wb_threshold[g_n_devices + 1] = {0, 60, 80, 100};
-int migrate_threshold[g_n_devices + 1] = {0, 90, 95, 100};
+int migrate_threshold[g_n_devices + 1] = {0, 35, 95, 100};
 
 static inline uint8_t get_lower_dev(uint8_t dev)
 {
@@ -217,9 +217,9 @@ int try_migrate_blocks(uint8_t from_dev, uint8_t to_dev, uint32_t nr_blocks, uin
   */
 
   uint64_t num_migr = get_num_migrated();
-	if (used_blocks - num_migr > (migrate_threshold[from_dev] * datablocks / 4) / 100) {
+	if (used_blocks - num_migr > (migrate_threshold[from_dev] * datablocks) / 100) {
 		n_entries = BLOCKS_TO_LRU_ENTRIES(
-				used_blocks - num_migr - ((migrate_threshold[from_dev] * datablocks / 4) / 100));
+				used_blocks - num_migr - ((migrate_threshold[from_dev] * datablocks) / 100));
 		do_migrate = 1;
 	} else {
 		return 0;
