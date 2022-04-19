@@ -91,8 +91,6 @@ void signal_callback(struct app_context *msg)
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
     memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
     
-    printf("write req from node %x with block %d\n", req.node_num, req.block_num);
-
     uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
     if (to_free) {
       blk_free(to_free);

@@ -5,7 +5,9 @@
 #include <sys/stat.h>
 #include <global/types.h>
 
+#ifdef __cplusplus
 extern "C" {
+#endif
 
 int det_open(const char *filename, int flags, mode_t mode);
 int det_creat(const char *filename, mode_t mode);
@@ -23,6 +25,8 @@ int det_access(const char *pathname, int mode);
 int det_fsync(int fd);
 int det_fcntl(int fd, int cmd, void *arg);
 
+#ifdef __cplusplus
 }
+#endif
 
 #endif
