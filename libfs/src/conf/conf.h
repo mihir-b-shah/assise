@@ -3,6 +3,7 @@
 #define _CONFIG_H_
 
 #include "conf_client.h"
+#include <stdint.h>
 
 struct conn_obj {
   struct in_addr addr;
@@ -19,5 +20,6 @@ void setup_appl_conf();
 
 struct conn_ctx* update_cache_conf();
 config_t* get_cache_conf();
+struct conn_obj* get_dest(uint64_t block_no);
 
 #endif

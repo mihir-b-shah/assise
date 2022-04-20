@@ -12,14 +12,12 @@ static volatile uint32_t glob_seqn = 2;
 
 void send_to_rcache(uint64_t block)
 {
-  struct conn_ctx* ctx = update_cache_conf();
-  if (ctx->n == 0) {
-    // if there are no cache nodes, just ignore sending- don't queue the block, for now.
+  struct conn_obj* dst_node = get_dest(block);
+  if (dst_node == NULL) {
     return;
   }
 
-  // hopefully when I use consistent hashing, common code can go in conf.h
-  int sockfd = ctx->conn_ring[0].sockfd;
+  int sockfd = dst_node->sockfd;
 
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);

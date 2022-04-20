@@ -15,12 +15,12 @@ static volatile uint32_t glob_seqn = 2;
 
 enum fetch_res fetch_remote(struct rcache_req* req)
 {
-  struct conn_ctx* ctx = update_cache_conf();
-  if (ctx->n == 0) {
+  struct conn_obj* dst_node = get_dest(req->block);
+  if (dst_node == NULL) {
     return NONE_SENT;
   }
 
-  int sockfd = ctx->conn_ring[0].sockfd;
+  int sockfd = dst_node->sockfd;
 
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
