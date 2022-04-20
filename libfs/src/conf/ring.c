@@ -15,11 +15,6 @@ static uint64_t hash(uint64_t x)
   return x;
 }
 
-static  get_ring_index(struct conn_ctx* ctx, uint64_t hash)
-{
-  return result;
-}
-
 struct conn_obj* get_dest(uint64_t block_no)
 {
   assert(block_no < UINT32_MAX);

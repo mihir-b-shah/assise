@@ -45,6 +45,9 @@ static uint64_t make_block_num(uint32_t node, uint64_t block)
 #define MR_RCACHE 0
 #define MR_DRAM_CACHE 2
 
+static uint64_t r_ctr = 0;
+static uint64_t w_ctr = 0;
+
 void signal_callback(struct app_context *msg)
 {
   if (msg->data[0] == 'R') {
@@ -74,6 +77,7 @@ void signal_callback(struct app_context *msg)
     }
 
     printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
+    ++r_ctr;
 
     meta->sge_count = 1;
     meta->next = NULL;
@@ -94,6 +98,7 @@ void signal_callback(struct app_context *msg)
     uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
 
     printf("received block %lu from node %lx\n", req.block_num, req.node_num);
+    ++w_ctr;
 
     if (to_free) {
       blk_free(to_free);
@@ -154,6 +159,7 @@ int main(int argc, char **argv)
     sleep(1);
   }
   munmap(base, MEM_SIZE);
+  printf("r_ct: %lu, w_ct: %lu\n", r_ctr, w_ctr);
 
 	return 0;
 }
