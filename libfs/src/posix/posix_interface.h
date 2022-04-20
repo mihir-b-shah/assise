@@ -29,7 +29,7 @@ int mlfs_posix_rename(char *oldname, char *newname);
 int mlfs_posix_fsync(int fd);
 void *mlfs_posix_mmap(int fd);
 size_t mlfs_posix_getdents(int fd, struct linux_dirent *buf, size_t nbytes, offset_t off);
-size_t mlfs_posix_getdents64(int fd, struct linux_dirent64 *buf, size_t nbytes, offset_t off);
+ssize_t mlfs_posix_getdents64(int fd, struct linux_dirent64 *buf, size_t nbytes, offset_t off);
 int mlfs_posix_fcntl(int fd, int cmd, void *arg);
 
 #ifdef __cplusplus

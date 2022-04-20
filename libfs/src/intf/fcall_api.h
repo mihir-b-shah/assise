@@ -24,6 +24,7 @@ int det_unlink(const char *path);
 int det_access(const char *pathname, int mode);
 int det_fsync(int fd);
 int det_fcntl(int fd, int cmd, void *arg);
+size_t det_getdents64(int fd, struct linux_dirent64 *buf, size_t nbytes, loff_t offs);
 
 #ifdef __cplusplus
 }

@@ -1414,7 +1414,6 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
-  int in_ssd = ssd_has_blk(bmap_req.block_no);
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1429,6 +1428,8 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
 
   // we don't actually migrate things, so shouldn't be in ssd.
   assert(bmap_req.dev == g_root_dev);
+  
+  int in_ssd = ret >= 0 && ssd_has_blk(bmap_req.block_no);
   
   if (in_ssd && bmap_req.blk_count_found == 1) {
     g_perf_stats.ssd_hit++;
@@ -1649,7 +1650,6 @@ do_global_search:
 
 	// Get block address from shared area.
 	ret = bmap(ip, &bmap_req);
-  int in_ssd = ssd_has_blk(bmap_req.block_no);
 
 	if (enable_perf_stats) {
 		g_perf_stats.tree_search_tsc += (asm_rdtscp() - start_tsc);
@@ -1669,6 +1669,7 @@ do_global_search:
   //TODO: update shared device LRU to reflect block being touched by read
 
   mlfs_debug("Found in NVM: %s\n", path);
+  int in_ssd = ret >= 0 && ssd_has_blk(bmap_req.block_no);
 
   // again, we don't actually migrate things.
   assert(bmap_req.dev == g_root_dev);

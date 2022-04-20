@@ -6,6 +6,7 @@
 #include <syscall.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #include <posix/posix_interface.h>
 #include <global/types.h>
@@ -212,5 +213,15 @@ int det_fcntl(int fd, int cmd, void *arg)
     return mlfs_posix_fcntl(get_mlfs_fd(fd), cmd, arg);
   } else {
     return fcntl(fd, cmd, arg);
+  }
+}
+
+ssize_t det_getdents64(int fd, struct linux_dirent64 *buf, size_t nbytes, loff_t offs)
+{
+  if (check_mlfs_fd(fd)) {
+    return mlfs_posix_getdents64(get_mlfs_fd(fd), buf, nbytes, offs);
+  } else {
+    // different format.
+    assert(0);
   }
 }

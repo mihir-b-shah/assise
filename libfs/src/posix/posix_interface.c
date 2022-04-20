@@ -804,7 +804,7 @@ size_t mlfs_posix_getdents(int fd, struct linux_dirent *buf,
 	return sizeof(struct linux_dirent);
 }
 
-size_t mlfs_posix_getdents64(int fd, struct linux_dirent64 *buf, 
+ssize_t mlfs_posix_getdents64(int fd, struct linux_dirent64 *buf, 
 		size_t nbytes, offset_t off)
 {
 	struct file *f;
