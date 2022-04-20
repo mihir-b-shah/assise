@@ -91,7 +91,7 @@ static inline void set_digesting()
 	while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (!cmpxchg(&g_fs_log->digesting, 0, 1)) {
-			mlfs_printf("set log digesting state%s", "\n");
+			//mlfs_printf("set log digesting state%s", "\n");
 			return;
 		}
 
@@ -105,7 +105,7 @@ static inline void clear_digesting()
 	while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (cmpxchg(&g_fs_log->digesting, 1, 0)) {
-			mlfs_printf("clear log digesting state%s", "\n");
+			//mlfs_printf("clear log digesting state%s", "\n");
 			return;
 		}
 

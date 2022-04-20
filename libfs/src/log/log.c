@@ -604,7 +604,7 @@ void commit_log_tx(void)
 		mlfs_debug("commit log_tx %u\n", g_fs_log->outstanding);
 #endif
 		if (enable_perf_stats) {
-      printf("LOG_COMMIT_TSC occurred.\n");
+      //printf("LOG_COMMIT_TSC occurred.\n");
 			g_perf_stats.log_commit_tsc += (asm_rdtscp() - tsc_begin);
 			g_perf_stats.log_commit_nr++;
 		}
@@ -1427,7 +1427,7 @@ void signal_callback(struct app_context *msg)
 		uint32_t n_digested;
 		addr_t start_digest;
 
-		mlfs_printf("peer recv: %s\n", msg->data);
+		//mlfs_printf("peer recv: %s\n", msg->data);
 		sscanf(msg->data, "|%s |%d|%d|%d|%lu|%d|%d|", cmd_hdr, &log_id, &dev,
 				&n_digested, &start_digest, &rotated, &lru_updated);
 
@@ -1615,7 +1615,7 @@ uint32_t make_digest_request_sync(int percent)
 			g_self_id, g_log_dev, g_fs_log->n_digest_req, g_log_sb->start_digest,
 		       	 g_fs_log->log_sb_blk + 1, atomic_load(&g_log_sb->end));
 
-	mlfs_printf("%s\n", cmd);
+	//mlfs_printf("%s\n", cmd);
 
 	rpc_forward_msg(g_kernfs_peers[g_kernfs_id]->sockfd[SOCK_BG], cmd);
 
@@ -1650,7 +1650,7 @@ void handle_digest_response(char *ack_cmd)
 	sscanf(ack_cmd, "|%s |%d|%d|%d|%lu|%d|%d|", ack, &libfs_id, &dev, &n_digested, 
 			&next_hdr_of_digested_hdr, &rotated, &lru_updated);
 
-	mlfs_printf("%s\n", ack_cmd);
+	//mlfs_printf("%s\n", ack_cmd);
 
 	mlfs_assert(g_self_id == libfs_id);
 
@@ -1668,9 +1668,9 @@ void handle_digest_response(char *ack_cmd)
 
 	if (rotated) {
 		atomic_add(&g_fs_log->start_version, 1);
-		mlfs_printf("-- log head is rotated: new start %lu new end %lu start_version %u avail_version %u\n",
-				g_fs_log->next_avail_header, atomic_load(&g_log_sb->end),
-				g_fs_log->start_version, g_fs_log->avail_version);
+		//mlfs_printf("-- log head is rotated: new start %lu new end %lu start_version %u avail_version %u\n",
+		//	g_fs_log->next_avail_header, atomic_load(&g_log_sb->end),
+		//	g_fs_log->start_version, g_fs_log->avail_version);
 		if(g_fs_log->start_version == g_fs_log->avail_version)
 			atomic_store(&g_log_sb->end, 0);
 	}
@@ -1693,10 +1693,11 @@ void handle_digest_response(char *ack_cmd)
 	// persist log superblock.
 	write_log_superblock((struct log_superblock *)g_log_sb);
 
-	mlfs_info("clear digesting state for log%s", "\n");
+	//mlfs_info("clear digesting state for log%s", "\n");
 	clear_digesting();
 
-	if (enable_perf_stats) 
-		show_libfs_stats();
+	if (enable_perf_stats) {
+		//show_libfs_stats();
+  }
 }
 

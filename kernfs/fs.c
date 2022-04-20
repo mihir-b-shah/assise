@@ -1802,10 +1802,11 @@ static void handle_digest_request(void *arg)
 		g_perf_stats.digest_time_tsc = 
 			(asm_rdtscp() - g_perf_stats.digest_time_tsc);
 
-	show_storage_stats();
+	// show_storage_stats();
 
-	if (enable_perf_stats)	
-		show_kernfs_stats();
+	if (enable_perf_stats) {
+		//show_kernfs_stats();
+  }
 
 	} else if (strcmp(cmd_header, "lru") == 0) {
 		// only used for debugging.

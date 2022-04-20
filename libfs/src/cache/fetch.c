@@ -38,7 +38,7 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   
   uint32_t imm = MP_AWAIT_RESPONSE_MASK(sockfd, seqn, SEQN_MASK);
 
-  printf("Performed read with imm=%x, seqn=%x\n", imm, seqn);
+  printf("inum: %u, offs: %lx, blk: %lu\n", req->inode, req->offset, req->block);
 
   if (imm & PRESENT_MASK) {
     return FULL_SENT;

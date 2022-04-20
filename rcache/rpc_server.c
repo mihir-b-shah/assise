@@ -73,7 +73,7 @@ void signal_callback(struct app_context *msg)
       meta->length = 0;
     }
 
-    printf("responding with imm:%x, len:%d\n", meta->imm, meta->length);
+    printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
 
     meta->sge_count = 1;
     meta->next = NULL;
@@ -92,6 +92,9 @@ void signal_callback(struct app_context *msg)
     memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
     
     uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
+
+    printf("received block %lu from node %lx\n", req.block_num, req.node_num);
+
     if (to_free) {
       blk_free(to_free);
     }

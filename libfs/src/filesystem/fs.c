@@ -1438,7 +1438,6 @@ int do_unaligned_read(struct inode *ip, struct mlfs_reply *reply, offset_t off, 
      * then, just place the (read-only) block in read cache. Invariant is that digestion will never hit it.
      */
 
-		mlfs_assert(_fcache_block == NULL);
 		_fcache_block = add_to_read_cache(ip, off_aligned, NULL);
 		
     // TODO: mlfs_readahead(g_ssd_dev, bh->b_blocknr, (128 << 10));
