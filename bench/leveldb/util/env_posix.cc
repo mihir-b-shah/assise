@@ -391,7 +391,6 @@ class PosixEnv : public Env {
     loff_t offs = 0;
     ssize_t adv;
     while ((adv = det_getdents64(dirfd, &entry, sizeof(struct linux_dirent64), offs)) > 0) {
-      printf("Found child %s at offset %ld\n", entry.d_name, offs); 
       result->push_back(entry.d_name);
       offs += adv;
     }
