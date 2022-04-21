@@ -36,12 +36,15 @@ int main()
     
     // spark would typically perform lots of computation and then checkpoint- can just ignore this part.
 
+    printf("Starting cycle %d of writes.\n", K);
     for (int j = 0; j<RDD_SIZE; j+=4096) {
       int ret = det_write(fd, buf, IO_SIZE);
     }
+    printf("Ending cycle %d of writes.\n", K);
     det_lseek(fd, 0, SEEK_SET);
   }
 
   pthread_barrier_wait(bar);
+  det_close(fd);
   return 0;
 }

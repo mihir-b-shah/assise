@@ -23,5 +23,5 @@ setup:
 	$(CC) -g -o $@ $^ -I$(INCLUDES) -L$(LIBFS_DIR) -lmlfs -DMLFS $(CFLAGS) $(LDFLAGS)
 
 clean:
-	rm -rf *.o $(TGTS)
+	rm -rf *.o $(TGTS) setup
 
