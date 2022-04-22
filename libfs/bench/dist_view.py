@@ -44,9 +44,7 @@ But our workload has no drift- its randomly generated.
 reuse_list = sorted(reuse_dists.values(), key=lambda p: p[0])
 evict_frac = int((int(sys.argv[4])/100)*len(reuse_list))
 
-ret_list = itertools.accumulate(sorted(map(lambda p: p[0], reuse_list[len(reuse_list)-evict_frac:])), lambda p,q: max(p,q))
-for v in ret_list:
-    print(v)
-
-#frac = sum(map(lambda p: p[1], reuse_list[len(reuse_list)-evict_frac:]))
-#ttl = sum(map(lambda p: p[1], reuse_list[0:]))
+evict_list = reuse_list[len(reuse_list)-evict_frac:]
+ret_list = itertools.accumulate(sorted(evict_list, key=lambda p:p[0]), lambda p,q: (max(p[0],q[0]), p[1]+q[1]))
+for v1,v2 in ret_list:
+    print('%s %s'%(v1, v2/ct))
