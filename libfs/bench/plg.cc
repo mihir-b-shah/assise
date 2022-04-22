@@ -4,10 +4,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#define IO_SIZE 128
 #define NNUMS 8
-#define WR_SIZE 4096
-#define N_DUTY_CYCLE 1000000
 
 /*
  * Notes from this paper: https://www.benchcouncil.org/BigDataBench/files/huafengxi.pdf
@@ -132,15 +129,17 @@ void evolve(struct blkno* v)
 
 int main(int argc, char** argv)
 {
-  int rand_amt = atoi(argv[1]);
-  int skew_amt = atoi(argv[2]);
+  int n = atoi(argv[1]);
+  int rand_amt = atoi(argv[2]);
+  int skew_amt = atoi(argv[3]);
 
   struct blkno blk;
   init(&blk, rand_amt, skew_amt);
   
-  for (int i = 0; i<N_DUTY_CYCLE; ++i) {
+  for (int i = 0; i<n; ++i) {
     evolve(&blk);
     uint32_t vrand = make(&blk);
+    printf("%u\n", vrand);
   }
 
   return 0;
