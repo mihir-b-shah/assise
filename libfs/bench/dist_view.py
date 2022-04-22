@@ -23,14 +23,15 @@ for i, line in enumerate(data.decode('utf-8').splitlines()):
   ct += 1
 
 reuse_dists = {}
-for k,arr in by_key.items():
-  loc_ct = 1
-  sm = ct-arr[0]
-  mult = 0.5
+for k,arr_raw in by_key.items():
+  arr = list(reversed(arr_raw+[ct]))
+  sm = 0
+  powf = 1.1
+  mult = 1
   for i in range(len(arr)-1):
-    sm += mult*(arr[i+1]-arr[i])
-    mult *= 0.5
-  sm /= (2-2*mult)
+    sm += mult*abs(arr[i+1]-arr[i])
+    mult /= powf
+  sm *= (1-(1/powf))/(1-mult)
   reuse_dists[k] = (sm, len(arr))
 
 '''
@@ -40,13 +41,12 @@ when drift happens- i.e. a once-popular value hangs around in lfu, but lru kills
 But our workload has no drift- its randomly generated.
 '''
 
-reuse_list = sorted(reuse_dists.values(), key=lambda p: p[0]/p[1])
+reuse_list = sorted(reuse_dists.values(), key=lambda p: p[0])
 evict_frac = int((int(sys.argv[4])/100)*len(reuse_list))
 
-print(list(itertools.accumulate(map(lambda p: p[0]/p[1], reuse_list[len(reuse_list)-evict_frac:]), lambda p,q: max(p,q))))
+ret_list = itertools.accumulate(sorted(map(lambda p: p[0], reuse_list[len(reuse_list)-evict_frac:])), lambda p,q: max(p,q))
+for v in ret_list:
+    print(v)
 
-frac = sum(map(lambda p: p[1], reuse_list[len(reuse_list)-evict_frac:]))
-ttl = sum(map(lambda p: p[1], reuse_list[0:]))
-
-print(frac)
-print(ttl)
+#frac = sum(map(lambda p: p[1], reuse_list[len(reuse_list)-evict_frac:]))
+#ttl = sum(map(lambda p: p[1], reuse_list[0:]))
