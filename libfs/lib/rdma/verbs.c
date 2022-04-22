@@ -83,7 +83,7 @@ uint32_t send_rdma_operation(struct rdma_cm_id *id, rdma_meta_t *meta, int local
 		{
 			total_len += meta->sge_entries[i].length;
 			if(!IBV_WITHIN_MR_RANGE((&meta->sge_entries[i]), local_mr)) {
-				debug_print("failed to sync. given[addr:%lx, len:%u] - mr[addr:%lx, len:%lu]\n",
+				printf("failed to sync local. given[addr:%lx, len:%u] - mr[addr:%lx, len:%lu]\n",
 						meta->sge_entries[i].addr, meta->sge_entries[i].length,
 						remote_mr->addr, remote_mr->length);
 				mp_die("request outside bounds of registered mr");
@@ -94,7 +94,7 @@ uint32_t send_rdma_operation(struct rdma_cm_id *id, rdma_meta_t *meta, int local
 			exit(EXIT_FAILURE);
 
 		if(one_sided && total_len && !IBV_WITHIN_MR_RANGE(meta, remote_mr)) {
-			debug_print("failed to sync. given[addr:%lx, len:%lu] - mr[addr:%lx, len:%lu]\n",
+			printf("failed to sync remote. given[addr:%lx, len:%lu] - mr[addr:%lx, len:%lu]\n",
 					meta->addr, meta->length, remote_mr->addr, remote_mr->length);
 			mp_die("request outside bounds of registered mr");
 		}

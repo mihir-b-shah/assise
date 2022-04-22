@@ -1,4 +1,5 @@
 
+#include <pthread.h>
 #include "rcache.h"
 
 #include <time.h>
@@ -24,6 +25,7 @@ void inthand(int signum)
 
 uint8_t* base = NULL;
 size_t MEM_SIZE = 0x200000000;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct client_req {
   uint32_t node_num;
@@ -50,6 +52,8 @@ static uint64_t w_ctr = 0;
 
 void signal_callback(struct app_context *msg)
 {
+  pthread_mutex_lock(&lock);
+
   if (msg->data[0] == 'R') {
     struct client_req req;
     memcpy(&req, 1+msg->data, sizeof(struct client_req));
@@ -107,6 +111,7 @@ void signal_callback(struct app_context *msg)
     printf("Odd message received.\n");
     exit(0);
   }
+  pthread_mutex_unlock(&lock);
 }
 
 void add_peer_socket(int sockfd) {}
