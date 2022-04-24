@@ -26,7 +26,7 @@
  */
 
 static uint32_t X1pN = 0;
-static uint32_t np = 0;
+static double np = 0;
 
 uint32_t pl_rand()
 {
@@ -36,7 +36,7 @@ uint32_t pl_rand()
 
 int main(int argc, char** argv)
 {
-  np = atoi(argv[1]);
+  np = atof(argv[1]);
   X1pN = pow(WS_SIZE/4096, np);
 
   int barfd = shm_open("schedbar", O_RDWR, ALLPERMS);

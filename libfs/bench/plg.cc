@@ -18,7 +18,7 @@
  */
 
 static uint32_t X1pN = 0;
-static uint32_t np = 0;
+static double np = 0;
 
 uint32_t pl_rand()
 {
@@ -29,7 +29,7 @@ uint32_t pl_rand()
 int main(int argc, char** argv)
 {
   uint32_t n = atoi(argv[1]);
-  np = atoi(argv[2]);
+  np = atof(argv[2]);
   X1pN = pow(WS_SIZE/4096, np);
 
   for (int i = 0; i<n; ++i) {
