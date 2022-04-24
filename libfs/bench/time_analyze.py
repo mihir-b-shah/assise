@@ -20,7 +20,7 @@ with open("query_log.txt") as f:
     replay.append((vals[0], v1))
 
   for key, rcache_ev in replay:
-    if key in offset_map:
+    if key in offset_map and rcache_ev == 2:
       ttl += len(offset_map[key])
       del offset_map[key]
     print(ttl)

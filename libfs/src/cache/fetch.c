@@ -10,7 +10,7 @@ struct client_req {
 
 static volatile uint32_t glob_seqn = 2;
 
-#define SEQN_MASK 0x000fffffUL
+#define SEQN_MASK 0x0fffffffUL
 #define PRESENT_MASK 0x80000000UL
 
 // visible to application, deliberately.

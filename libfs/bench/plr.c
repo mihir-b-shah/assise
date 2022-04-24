@@ -1,4 +1,6 @@
 
+#include "pl_rand.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,28 +19,8 @@
 #define N_DUTY_CYCLE 1000000
 #define WS_SIZE 1000000000
 
-/*
- * Like search.c, this approximates the power-law distribution, but more conveniently- by giving consistent 
- * replays of working sets, not randomly varying ones. Still realistic, since working sets probably only
- * drift in the long-run.
- *
- * https://mathworld.wolfram.com/RandomNumber.html*
- */
-
-static uint32_t X1pN = 0;
-static double np = 0;
-
-uint32_t pl_rand()
-{
-  double y = ((double) rand())/RAND_MAX;
-  return (uint32_t) pow(X1pN * y, 1.0/(np+1));
-}
-
 int main(int argc, char** argv)
 {
-  np = atof(argv[1]);
-  X1pN = pow(WS_SIZE/4096, np);
-
   int barfd = shm_open("schedbar", O_RDWR, ALLPERMS);
  	pthread_barrier_t* bar = mmap(NULL, sizeof(pthread_barrier_t), PROT_READ | PROT_WRITE,
     MAP_SHARED | MAP_POPULATE, barfd, 0);
