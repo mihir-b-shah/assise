@@ -5,13 +5,12 @@ import itertools
 
 '''
 argv[1]: n > 0
-argv[2]: rand < 100
-argv[3]: skew < 100
-argv[4]: evict_frac < 100
+argv[2]: np
+argv[3]: evict_frac < 100
 '''
 
 n = int(sys.argv[1])
-data = subprocess.check_output(['plg.exe', str(n), sys.argv[2], sys.argv[3]])
+data = subprocess.check_output(['plg.exe', str(n), sys.argv[2]])
 
 by_key = {}
 ct = 0
@@ -41,7 +40,7 @@ But our workload has no drift- its randomly generated.
 '''
 
 reuse_list = sorted(reuse_dists.values(), key=lambda p: p[0])
-evict_frac = int((int(sys.argv[4])/100)*len(reuse_list))
+evict_frac = int((int(sys.argv[3])/100)*len(reuse_list))
 
 evict_list = reuse_list[len(reuse_list)-evict_frac:]
 ret_list = itertools.accumulate(sorted(evict_list, key=lambda p:p[0]), lambda p,q: (max(p[0],q[0]), p[1]+q[1]))
