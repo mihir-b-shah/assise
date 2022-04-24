@@ -14,7 +14,8 @@ void blk_free(uint8_t*);
 
 // in lru_impl.cc
 void lru_init(size_t n_blocks);
-uint8_t* lru_insert_block(uint64_t block, uint8_t* data);
+uint8_t* lru_try_evict();
+void lru_insert_block(uint64_t block, uint8_t* data);
 uint8_t* lru_get_block(uint64_t block);
 
 #endif

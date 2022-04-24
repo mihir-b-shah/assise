@@ -1252,8 +1252,10 @@ void add_to_loghdr(uint8_t type, struct inode *inode, offset_t data,
 
 	i = loghdr->n;
 
-	if (i >= g_max_blocks_per_operation)
+	if (i >= g_max_blocks_per_operation) {
+    printf("loghdr->n:%lu, max:%lu, inum:%u, offs:%lu, len:%lu\n", i, g_max_blocks_per_operation, inode->inum, data, length);
 		panic("log header is too small\n");
+  }
 
 	loghdr->type[i] = type;
 	loghdr->inode_no[i] = inode->inum;

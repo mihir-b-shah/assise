@@ -8,7 +8,6 @@ argv[1]: n > 0
 argv[2]: rand < 100
 argv[3]: skew < 100
 argv[4]: evict_frac < 100
-
 '''
 
 n = int(sys.argv[1])

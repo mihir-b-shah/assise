@@ -26,6 +26,10 @@ void blk_init(uint8_t* mem_base_, size_t mem_size_)
 
 uint8_t* blk_alloc(void)
 {
+  if (!free_lhead) {
+    return NULL;
+  }
+
   uint8_t* to_give = free_lhead;
   uint64_t* view = (uint64_t*) to_give;
   free_lhead = (uint8_t*) *view;

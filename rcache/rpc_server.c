@@ -15,6 +15,9 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
+#include <unistd.h>
+#include <execinfo.h>
+#include <signal.h>
 
 volatile sig_atomic_t stop;
 
@@ -24,7 +27,7 @@ void inthand(int signum)
 }
 
 uint8_t* base = NULL;
-size_t MEM_SIZE = 0x200000000;
+size_t MEM_SIZE = 0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 struct client_req {
@@ -47,8 +50,25 @@ static uint64_t make_block_num(uint32_t node, uint64_t block)
 #define MR_RCACHE 0
 #define MR_DRAM_CACHE 2
 
-static uint64_t r_ctr = 0;
+static uint64_t hit_ctr = 0;
+static uint64_t miss_ctr = 0;
 static uint64_t w_ctr = 0;
+
+void handle_segfault(int sig)
+{
+  char **strings;
+  size_t i, size;
+  enum Constexpr { MAX_SIZE = 1024 };
+  void *array[MAX_SIZE];
+  size = backtrace(array, MAX_SIZE);
+  strings = backtrace_symbols(array, size);
+  for (i = 0; i < size; i++) {
+    printf("%s\n", strings[i]);
+  }
+  puts("");
+  free(strings);
+  abort();
+}
 
 void signal_callback(struct app_context *msg)
 {
@@ -75,38 +95,36 @@ void signal_callback(struct app_context *msg)
     if (blk != NULL) {
       meta->imm = msg->id | 0x80000000UL;
       meta->length = BLK_SIZE;
+      ++hit_ctr;
     } else {
       meta->imm = msg->id;
       meta->length = 0;
+      ++miss_ctr;
     }
 
     printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
-    ++r_ctr;
 
     meta->sge_count = 1;
     meta->next = NULL;
 
     // take advantage of zero length array at end of rdma_meta_t
-    meta->sge_entries[0].addr = (uintptr_t) blk;
-    meta->sge_entries[0].length = BLK_SIZE;
+    meta->sge_entries[0].addr = (uintptr_t) (blk == NULL ? base : blk);
+    meta->sge_entries[0].length = blk == NULL ? 0 : BLK_SIZE;
 
     IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, MR_RCACHE, MR_DRAM_CACHE);
   } else if (msg->data[0] == 'W') {
-    uint8_t* blk = blk_alloc();
-
     struct send_req req;
-
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
+
+    uint8_t* evicted = lru_try_evict();
+    uint8_t* blk = evicted != NULL ? evicted : blk_alloc();
+    assert(blk != NULL);
     memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
     
-    uint8_t* to_free = lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
+    lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
 
     printf("received block %lu from node %lx\n", req.block_num, req.node_num);
     ++w_ctr;
-
-    if (to_free) {
-      blk_free(to_free);
-    }
   } else {
     printf("Odd message received.\n");
     exit(0);
@@ -119,6 +137,23 @@ void remove_peer_socket(int sockfd) {}
 
 int main(int argc, char **argv)
 {
+  signal(SIGSEGV, handle_segfault);
+
+	char *host;
+	char *portno;
+	struct mr_context *regions;
+	int sockfd;
+	int iters;
+	int sync;
+
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s <port> <cache_size>\n", argv[0]);
+		return 1;
+	}
+
+	portno = argv[1];
+  MEM_SIZE = strtoull(argv[2], NULL, 16);
+  
   conf_cmd_t ccmd;
   init_cmd(&ccmd);
   start_cache_client(&ccmd);
@@ -135,20 +170,6 @@ int main(int argc, char **argv)
   blk_init(base, MEM_SIZE);
   lru_init(MEM_SIZE / BLK_SIZE);
 
-	char *host;
-	char *portno;
-	struct mr_context *regions;
-	int sockfd;
-	int iters;
-	int sync;
-
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s <port>\n", argv[0]);
-		return 1;
-	}
-
-	portno = argv[1];
-
 	regions = (struct mr_context *) calloc(1, sizeof(struct mr_context));
 
 	//allocate memory
@@ -157,6 +178,7 @@ int main(int argc, char **argv)
   regions[0].length = MEM_SIZE;
 
 	init_rdma_agent(portno, regions, 1, 4200, CH_TYPE_REMOTE, add_peer_socket, remove_peer_socket, signal_callback);
+  printf("Set up with size %llu\n", MEM_SIZE);
  	
   signal(SIGINT, inthand);
 
@@ -164,7 +186,7 @@ int main(int argc, char **argv)
     sleep(1);
   }
   munmap(base, MEM_SIZE);
-  printf("r_ct: %lu, w_ct: %lu\n", r_ctr, w_ctr);
+  printf("hit_ct: %lu, miss_ct: %lu, w_ct: %lu\n", hit_ctr, miss_ctr, w_ctr);
 
 	return 0;
 }

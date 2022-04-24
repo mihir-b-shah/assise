@@ -15,6 +15,7 @@
 #define NNUMS 8
 #define WR_SIZE 4096
 #define N_DUTY_CYCLE 1000000
+#define WS_SIZE 1000000000
 
 /*
  * Notes from this paper: https://www.benchcouncil.org/BigDataBench/files/huafengxi.pdf
@@ -153,7 +154,7 @@ int main(int argc, char** argv)
 
   int fd = det_open("/mlfs/table", O_RDWR | O_CREAT | O_TRUNC, 0666);
   uint8_t* wbuf = calloc(WR_SIZE, sizeof(uint8_t));
-  for (int i = 0; i<1000000000; i+=WR_SIZE) {
+  for (int i = 0; i<WS_SIZE; i+=WR_SIZE) {
     int ret = det_write(fd, wbuf, WR_SIZE);
   }
 
@@ -174,10 +175,11 @@ int main(int argc, char** argv)
       uint32_t vrand = make(&blk);
       uint32_t blk_offs = 4096 * vrand;
 
-      int ret = det_pread64(fd, buf, IO_SIZE, blk_offs);
-
-      det_lseek(fd, 0, blk_offs);
-      det_write(fd, buf, IO_SIZE);
+      if (blk_offs + WR_SIZE < WS_SIZE) {
+        int ret = det_pread64(fd, buf, IO_SIZE, blk_offs);
+        det_lseek(fd, blk_offs, SEEK_SET);
+        det_write(fd, buf, WR_SIZE);
+      }
     }
     printf("Finished cycle %d of reads.\n", K);
     pthread_barrier_wait(bar);

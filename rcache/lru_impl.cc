@@ -20,28 +20,26 @@ extern "C" void lru_init(size_t n_blocks_)
   n_blocks = n_blocks_;
 }
 
-// return evicted block, if any.
-extern "C" uint8_t* lru_insert_block(uint64_t block, uint8_t* data)
+extern "C" uint8_t* lru_try_evict()
 {
-  auto iter = lru_map.find(block);
-  if (iter != lru_map.end()) {
-    //assert(0);
-    auto& list_iter = iter->second;
-    list_iter->data = data;
-    return nullptr;
-  }
-
   if (lru_map.size() == n_blocks) {
     // evict the lru
     block_handle bh = lru_list.back();
     lru_map.erase(bh.block_num);
     lru_list.pop_back();
     return const_cast<uint8_t*>(bh.data);
+  } else {
+    return nullptr;
   }
 
+}
+
+// attempt to fill the data, with an evicted block. If not evicting, use alloced.
+// make sure to maintain invariants.
+extern "C" void lru_insert_block(uint64_t block, uint8_t* data)
+{
   lru_list.emplace_front(block, data);
   lru_map[block] = lru_list.begin();
-  return nullptr;
 }
 
 extern "C" uint8_t* lru_get_block(uint64_t block)
