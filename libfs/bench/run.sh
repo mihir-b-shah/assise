@@ -1,6 +1,5 @@
 #! /bin/bash
 
 PATH=$PATH:.
-
-LD_PRELOAD=../build/libmlfs.so MLFS_PROFILE=1 ${@}
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:../build/:../lib/rdma/" LD_PRELOAD="../build/libmlfs.so ../lib/rdma/librdma.so" ${@}
 

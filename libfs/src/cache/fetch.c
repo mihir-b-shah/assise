@@ -13,6 +13,11 @@ static volatile uint32_t glob_seqn = 2;
 #define SEQN_MASK 0x000fffffUL
 #define PRESENT_MASK 0x80000000UL
 
+// visible to application, deliberately.
+volatile int res_rcache_VISIBLE = -1;
+volatile int id_rcache_VISIBLE = -1;
+volatile uint32_t offs_rcache_VISIBLE = 0;
+
 enum fetch_res fetch_remote(struct rcache_req* req)
 {
   struct conn_obj* dst_node = get_dest(req->block);
@@ -38,11 +43,14 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   
   uint32_t imm = MP_AWAIT_RESPONSE_MASK(sockfd, seqn, SEQN_MASK);
 
-  printf("inum: %u, offs: %lx, blk: %lu\n", req->inode, req->offset, req->block);
+  ++id_rcache_VISIBLE;
+  offs_rcache_VISIBLE = req->offset;
 
   if (imm & PRESENT_MASK) {
+    res_rcache_VISIBLE = FULL_SENT;
     return FULL_SENT;
   } else {
+    res_rcache_VISIBLE = NONE_SENT;
     return NONE_SENT;
   }
 

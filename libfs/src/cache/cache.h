@@ -20,6 +20,10 @@ void init_ssd_q(void);
 void enq_ssd_req(struct rcache_req req);
 void fill_partials_until(struct inode* ip, off_t offs);
 
+extern volatile int res_rcache_VISIBLE;
+extern volatile int id_rcache_VISIBLE;
+extern volatile uint32_t offs_rcache_VISIBLE;
+
 void rcache_read(struct rcache_req req);
 void emul_ssd_read(struct rcache_req* req);
 
