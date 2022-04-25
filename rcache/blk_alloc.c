@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+static volatile uint8_t* free_lhead = NULL;
 static uint8_t* mem_base = NULL;
-static uint8_t* free_lhead = NULL;
 static size_t n_blocks = 0;
 
 void blk_init(uint8_t* mem_base_, size_t mem_size_)
@@ -27,6 +27,7 @@ void blk_init(uint8_t* mem_base_, size_t mem_size_)
 uint8_t* blk_alloc(void)
 {
   if (!free_lhead) {
+    printf("Could not alloc a block.\n");
     return NULL;
   }
 

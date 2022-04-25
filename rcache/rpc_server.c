@@ -78,8 +78,7 @@ void signal_callback(struct app_context *msg)
     struct client_req req;
     memcpy(&req, 1+msg->data, sizeof(struct client_req));
 
-    printf("received from client msg[%d] with the following node_num: %u, blk: %lu, dst: %p\n",
-      msg->id, req.node_num, req.block_num, req.dst);
+    //printf("received from client msg[%d] with the following node_num: %u, blk: %lu, dst: %p\n", msg->id, req.node_num, req.block_num, req.dst);
 
     /* scatter gather is the sge- allows us to read/write to non-contigious memory locations in one go, into a single 
      * contigious buffer 
@@ -97,12 +96,13 @@ void signal_callback(struct app_context *msg)
       meta->length = BLK_SIZE;
       ++hit_ctr;
     } else {
+      blk = NULL;
       meta->imm = msg->id;
       meta->length = 0;
       ++miss_ctr;
     }
 
-    printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
+    //printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
 
     meta->sge_count = 1;
     meta->next = NULL;
@@ -123,7 +123,7 @@ void signal_callback(struct app_context *msg)
     
     lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
 
-    printf("received block %lu from node %lx\n", req.block_num, req.node_num);
+    //printf("received block %lu from node %lx\n", req.block_num, req.node_num);
     ++w_ctr;
   } else {
     printf("Odd message received.\n");

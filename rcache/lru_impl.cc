@@ -1,6 +1,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <list>
 #include <unordered_map>
 
@@ -28,10 +29,13 @@ extern "C" uint8_t* lru_try_evict()
     lru_map.erase(bh.block_num);
     lru_list.pop_back();
     return const_cast<uint8_t*>(bh.data);
+  } else if (lru_map.size() < n_blocks) {
+    return nullptr;
   } else {
+    printf("lru map size invariant broken.\n");
+    assert(0);
     return nullptr;
   }
-
 }
 
 // attempt to fill the data, with an evicted block. If not evicting, use alloced.

@@ -10,6 +10,7 @@
 #include <sys/shm.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <time.h>
 
 #include <mlfs/mlfs_interface.h>	
 #include <intf/fcall_api.h>
@@ -44,6 +45,7 @@ int main(int argc, char** argv)
     pthread_barrier_wait(bar);
 
     printf("Started cycle %d of reads.\n", K);
+    clock_t t = clock();
     for (int i = 0; i<N_DUTY_CYCLE; ++i) {
       uint32_t blk_offs = 4096 * pl_rand();
 
@@ -53,7 +55,7 @@ int main(int argc, char** argv)
         det_write(fd, buf, IO_SIZE);
       }
     }
-    printf("Finished cycle %d of reads.\n", K);
+    printf("Ending cycle %d of reads, time=%f.\n", K, ((double) (clock()-t))/CLOCKS_PER_SEC);
     pthread_barrier_wait(bar);
     // sleepy time for spark to run
   }

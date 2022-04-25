@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <sys/shm.h>
 #include <pthread.h>
+#include <time.h>
 
 #include <mlfs/mlfs_interface.h>	
 #include <intf/fcall_api.h>
@@ -36,11 +37,12 @@ int main()
     
     // spark would typically perform lots of computation and then checkpoint- can just ignore this part.
 
+    clock_t t = clock();
     printf("Starting cycle %d of writes.\n", K);
     for (int j = 0; j<RDD_SIZE; j+=4096) {
       int ret = det_write(fd, buf, IO_SIZE);
     }
-    printf("Ending cycle %d of writes.\n", K);
+    printf("Ending cycle %d of writes, time=%f.\n", K, ((double) (clock()-t))/CLOCKS_PER_SEC);
     det_lseek(fd, 0, SEEK_SET);
   }
 
