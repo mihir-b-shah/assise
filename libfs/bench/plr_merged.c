@@ -86,7 +86,7 @@ int main(int argc, char** argv)
    **************************************************/
 
   for (int j = 0; j<RDD_SIZE; j+=4096) {
-    int ret = det_write(rfd, buf, IO_SIZE);
+    int ret = det_write(rfd, buf, WR_SIZE);
   }
   det_lseek(rfd, 0, SEEK_SET);
   

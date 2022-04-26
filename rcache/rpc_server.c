@@ -73,6 +73,7 @@ void handle_segfault(int sig)
 void signal_callback(struct app_context *msg)
 {
   pthread_mutex_lock(&lock);
+  size_t lsize = lru_size();
 
   if (msg->data[0] == 'R') {
     struct client_req req;
@@ -112,19 +113,24 @@ void signal_callback(struct app_context *msg)
     meta->sge_entries[0].length = blk == NULL ? 0 : BLK_SIZE;
 
     IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, MR_RCACHE, MR_DRAM_CACHE);
+    assert(lsize == lru_size());
   } else if (msg->data[0] == 'W') {
     struct send_req req;
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
 
-    uint8_t* evicted = lru_try_evict();
-    uint8_t* blk = evicted != NULL ? evicted : blk_alloc();
-    assert(blk != NULL);
-    memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
-    
-    lru_insert_block(make_block_num(req.node_num, req.block_num), blk);
+    uint64_t key = make_block_num(req.node_num, req.block_num);
+    if (!lru_get_block(key)) {
+      uint8_t* evicted = lru_try_evict();
+      uint8_t* blk = evicted != NULL ? evicted : blk_alloc();
+      assert(blk != NULL);
+      memcpy(blk, 1+msg->data+sizeof(struct send_req), BLK_SIZE);
+      
+      lru_insert_block(key, blk);
 
-    //printf("received block %lu from node %lx\n", req.block_num, req.node_num);
-    ++w_ctr;
+      //printf("received block %lu from node %lx\n", req.block_num, req.node_num);
+      ++w_ctr;
+      assert(evicted ? lsize == lru_size() : (1+lsize) == lru_size());
+    }
   } else {
     printf("Odd message received.\n");
     exit(0);

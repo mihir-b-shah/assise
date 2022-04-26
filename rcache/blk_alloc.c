@@ -10,11 +10,22 @@ static volatile uint8_t* free_lhead = NULL;
 static uint8_t* mem_base = NULL;
 static size_t n_blocks = 0;
 
+static void set_lhead(uint8_t* p)
+{
+  __atomic_store_n(&free_lhead, p, __ATOMIC_SEQ_CST);
+}
+
+static uint8_t* get_lhead()
+{
+  return __atomic_load_n(&free_lhead, __ATOMIC_SEQ_CST);
+}
+
 void blk_init(uint8_t* mem_base_, size_t mem_size_)
 {
   n_blocks = mem_size_ / BLK_SIZE;
   mem_base = mem_base_;
-  free_lhead = mem_base;
+
+  set_lhead(mem_base);
 
   // setup the free list
   // definition of mmap- the last pointer is NULL, and mmap has already set the last block to 0.
@@ -26,20 +37,20 @@ void blk_init(uint8_t* mem_base_, size_t mem_size_)
 
 uint8_t* blk_alloc(void)
 {
-  if (!free_lhead) {
+  if (!get_lhead()) {
     printf("Could not alloc a block.\n");
     return NULL;
   }
 
-  uint8_t* to_give = free_lhead;
+  uint8_t* to_give = get_lhead();
   uint64_t* view = (uint64_t*) to_give;
-  free_lhead = (uint8_t*) *view;
+  set_lhead((uint8_t*) *view);
   return to_give;
 }
 
 void blk_free(uint8_t* ptr)
 {
   uint64_t* view = (uint64_t*) ptr;
-  *view = (uint64_t) free_lhead;
-  free_lhead = ptr;
+  *view = (uint64_t) get_lhead();
+  set_lhead(ptr);
 }
