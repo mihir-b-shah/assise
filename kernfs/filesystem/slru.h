@@ -27,6 +27,7 @@ typedef struct lru_node {
 	struct list_head list;
 	// list for per-inode list
 	struct list_head per_inode_list;
+  uint32_t access_freq;
 	//uint32_t access_freq[LRU_ENTRY_SIZE / 4096];
 	uint8_t sync;
 } lru_node_t;

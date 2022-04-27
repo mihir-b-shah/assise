@@ -9,6 +9,7 @@
 #include "ssd_emulation.h"
 
 #include "cache/cache.h"
+#include "lru_map.h"
 
 lru_node_t *g_lru_hash[g_n_devices + 1];
 struct lru g_lru[g_n_devices + 1];
@@ -104,23 +105,31 @@ int update_slru_list_from_digest(uint8_t dev, lru_key_t k, lru_val_t v)
 
 	HASH_FIND(hh, g_lru_hash[dev], &k, sizeof(lru_key_t), node);
 
+  if (!node) {
+    node = lmap_find(k.block);
+  }
+
 	if (node) {
 		list_del_init(&node->list);
-		//node->access_freq[(ALIGN_FLOOR(search_key.offset, g_block_size_bytes)) >> g_block_size_shift]++;
-
+		node->access_freq++;
 		list_add(&node->list, &lru->lru_head);
+    printf("*** Moving existing block to head, inum:%lu, lblock:%lu, pblock:%lu, n:%lu\n", v.inum, v.lblock, k.block, lru->n);
 	} else {
 		node = (lru_node_t *)mlfs_zalloc(sizeof(lru_node_t));
 
 		node->key = k;
 		node->val = v;
-		//memset(&node->access_freq, 0, LRU_ENTRY_SIZE >> g_block_size_shift);
+    node->access_freq = 0;
 		INIT_LIST_HEAD(&node->list);
 
+    lmap_insert(k.block, node);
 		HASH_ADD(hh, g_lru_hash[dev], key, sizeof(lru_key_t), node);
 		node->sync = 0;
 		list_add(&node->list, &lru->lru_head);
 		lru->n++;
+
+    size_t ct = HASH_COUNT(g_lru_hash[dev]);
+    printf("*** Adding new block to head, inum:%lu, lblock:%lu, pblock:%lu, n:%lu, ct:%lu\n", v.inum, v.lblock, k.block, lru->n, ct);
 
 		//evict_slru_lists();
 	}
@@ -171,6 +180,7 @@ int migrate_blocks(uint8_t from_dev, uint8_t to_dev, isolated_list_t *migrate_li
     //printf("Sending block %lu\n", l->key.block);
 
 		HASH_DEL(g_lru_hash[from_dev], l);
+    lmap_erase(l->key.block);
 
     send_to_ssd(l->key.block);
     send_to_rcache(l->key.block);
@@ -252,6 +262,7 @@ do_force_migration:
         continue;
 
       //printf("*** added to list head.\n");
+      printf("Evicting block %lu with freq %lu, lru_n:%lu\n", node->key.block, node->access_freq, from_lru->n);
       list_add(&node->list, &migrate_list.head);
       migrate_list.n++;
 

@@ -30,7 +30,7 @@ ACONF_DIR := $(abspath $(LIBFS_DIR)/lib/aconf)
 
 INCLUDES  := $(addprefix -I, . $(LAIO_DIR) $(RDMA_DIR) $(ACONF_DIR))
 
-LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio -L$(ACONF_DIR) -Wl,-rpath=$(abspath $(ACONF_DIR)) -laconf
+LD_FLAGS = -lpthread -lstdc++ -lm -lrt -L$(RDMA_DIR) -Wl,-rpath=$(abspath $(RDMA_DIR)) -lrdma -lrdmacm -libverbs -ldl -luuid -lnuma -L$(LAIO_DIR) -Wl,-rpath=$(abspath $(LAIO_DIR)) -laio -L$(ACONF_DIR) -Wl,-rpath=$(abspath $(ACONF_DIR)) -laconf -lstdc++
 
 #MLFS_FLAGS = -DUSE_SLAB -DMLFS_INFO -DKERNFS
 MLFS_FLAGS = -DKERNFS
