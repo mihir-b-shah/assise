@@ -6,7 +6,7 @@ import numpy as np
 
 # mean and std dev of the distribution
 u = 2
-d = 0.5
+d = 1
 
 # number of standard deviations higher than mean expected the cache size is
 T = 0
