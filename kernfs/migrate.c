@@ -113,7 +113,6 @@ int update_slru_list_from_digest(uint8_t dev, lru_key_t k, lru_val_t v)
 		list_del_init(&node->list);
 		node->access_freq++;
 		list_add(&node->list, &lru->lru_head);
-    printf("*** Moving existing block to head, inum:%lu, lblock:%lu, pblock:%lu, n:%lu\n", v.inum, v.lblock, k.block, lru->n);
 	} else {
 		node = (lru_node_t *)mlfs_zalloc(sizeof(lru_node_t));
 
@@ -127,9 +126,6 @@ int update_slru_list_from_digest(uint8_t dev, lru_key_t k, lru_val_t v)
 		node->sync = 0;
 		list_add(&node->list, &lru->lru_head);
 		lru->n++;
-
-    size_t ct = HASH_COUNT(g_lru_hash[dev]);
-    printf("*** Adding new block to head, inum:%lu, lblock:%lu, pblock:%lu, n:%lu, ct:%lu\n", v.inum, v.lblock, k.block, lru->n, ct);
 
 		//evict_slru_lists();
 	}
