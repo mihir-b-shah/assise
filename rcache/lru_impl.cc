@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <list>
+#include <iterator>
 #include <unordered_map>
 
 struct block_handle {
@@ -69,6 +70,24 @@ extern "C" uint8_t* lru_get_block(uint64_t block)
   lru_list.erase(lru_iter);
   lru_list.push_front(bh);
   lru_map[block] = lru_list.begin();
+  assert(lru_list.size() == lru_map.size());
+  return const_cast<uint8_t*>(bh.data);
+}
+
+extern "C" uint8_t* lru_get_block_mru(uint64_t block)
+{
+  assert(lru_list.size() == lru_map.size());
+  const auto& map_iter = lru_map.find(block);
+  if (map_iter == lru_map.end()) {
+    return nullptr;
+  }
+
+  auto& lru_iter = map_iter->second;
+  block_handle bh = *lru_iter;
+
+  lru_list.erase(lru_iter);
+  lru_list.push_back(bh);
+  lru_map[block] = std::prev(lru_list.end());
   assert(lru_list.size() == lru_map.size());
   return const_cast<uint8_t*>(bh.data);
 }

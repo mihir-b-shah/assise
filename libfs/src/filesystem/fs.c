@@ -126,6 +126,8 @@ void show_libfs_stats(void)
 	printf("read cache hit    : %lu\n", g_perf_stats.read_cache_hit);
 	printf("nvm hit ct        : %lu\n", g_perf_stats.nvm_hit);
 	printf("ssd hit ct        : %lu\n", g_perf_stats.ssd_hit);
+	printf("rcache hit        : %lu\n", g_perf_stats.rcache_hit);
+	printf("rcache miss       : %lu\n", g_perf_stats.rcache_miss);
 	printf("read cache evict  : %lu\n", g_perf_stats.read_cache_evict);
 	printf("read cache add    : %lu\n", g_perf_stats.read_cache_add);
 

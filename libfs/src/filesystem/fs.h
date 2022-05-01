@@ -129,6 +129,8 @@ typedef struct mlfs_libfs_stats {
   uint64_t read_cache_hit;
   uint64_t nvm_hit;
   uint64_t ssd_hit;
+  uint64_t rcache_hit;
+  uint64_t rcache_miss;
   uint64_t read_cache_evict;
   uint64_t read_cache_add;
 } libfs_stat_t;

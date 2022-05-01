@@ -1,5 +1,6 @@
 
 #include "cache.h"
+#include <filesystem/fs.h>
 #include <conf/conf.h>
 
 struct client_req {
@@ -47,9 +48,11 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   offs_rcache_VISIBLE = req->offset;
 
   if (imm & PRESENT_MASK) {
+    g_perf_stats.rcache_hit++;
     res_rcache_VISIBLE = FULL_SENT;
     return FULL_SENT;
   } else {
+    g_perf_stats.rcache_miss++;
     res_rcache_VISIBLE = NONE_SENT;
     return NONE_SENT;
   }

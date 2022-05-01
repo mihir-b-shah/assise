@@ -24,7 +24,7 @@ static uint32_t hash32(uint32_t x)
   return x;
 }
 
-#define TOY
+//#define TOY
 
 #ifndef TOY
 #define NUM_MASKS 10
