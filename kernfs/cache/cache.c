@@ -3,7 +3,9 @@
 #include <global/global.h>
 #include <io/block_io.h>
 #include <io/device.h>
+#include <fs.h>
 #include <storage/storage.h>
+#include <global/util.h>
 #include "cache.h"
 #include "agent.h"
 #include <assert.h>
@@ -12,6 +14,9 @@ static volatile uint32_t glob_seqn = 2;
 
 void send_to_rcache(uint64_t block)
 {
+  /*
+  uint64_t stime = asm_rdtscp();
+
   struct conn_obj* dst_node = get_dest(block);
   if (dst_node == NULL) {
     return;
@@ -33,10 +38,10 @@ void send_to_rcache(uint64_t block)
   memcpy(1+app->data, &body, sizeof(body));
   g_bdev[g_root_dev]->storage_engine->read(g_root_dev, 1+sizeof(body)+app->data, block, g_block_size_bytes);
 
-  printf("*** Sent block %d\n", block);
-
   // we are asking for a particular block.
   MP_SEND_MSG_SYNC(sockfd, buffer_id, 0);
 
-  /* TODO: modify the callback in kernfs/fs.c to make sure we ignore the ACK */
+  // TODO: modify the callback in kernfs/fs.c to make sure we ignore the ACK
+	g_perf_stats.rcache_send_tsc += asm_rdtscp() - stime;
+  */
 }

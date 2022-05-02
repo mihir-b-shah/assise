@@ -2,6 +2,7 @@
 #include "cache.h"
 #include <filesystem/fs.h>
 #include <conf/conf.h>
+#include <global/util.h>
 
 struct client_req {
   uint32_t node_num;
@@ -21,6 +22,8 @@ volatile uint32_t offs_rcache_VISIBLE = 0;
 
 enum fetch_res fetch_remote(struct rcache_req* req)
 {
+	uint64_t start_tsc = asm_rdtscp();
+
   struct conn_obj* dst_node = get_dest(req->block);
   if (dst_node == NULL) {
     return NONE_SENT;
@@ -48,10 +51,12 @@ enum fetch_res fetch_remote(struct rcache_req* req)
   offs_rcache_VISIBLE = req->offset;
 
   if (imm & PRESENT_MASK) {
+    g_perf_stats.rcache_hit_tsc += (asm_rdtscp()-start_tsc);
     g_perf_stats.rcache_hit++;
     res_rcache_VISIBLE = FULL_SENT;
     return FULL_SENT;
   } else {
+    g_perf_stats.rcache_miss_tsc += (asm_rdtscp()-start_tsc);
     g_perf_stats.rcache_miss++;
     res_rcache_VISIBLE = NONE_SENT;
     return NONE_SENT;
@@ -66,6 +71,4 @@ enum fetch_res fetch_remote(struct rcache_req* req)
 
   printf("Received result_type: %u, s: %u, e: %u\n", result_type, start_offs, end_offs);
   */
-
-  // obviously change, but for preliminary experiments...
 }

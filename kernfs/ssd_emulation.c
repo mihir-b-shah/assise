@@ -83,10 +83,10 @@ void ssd_emul_latency(clock_t opt_start)
   // TODO: clock() is wall clock time, this is probably fine.
   int iters = 0;
   clock_t start = opt_start == 0 ? clock() : opt_start;
-  while (clock() - start < CLOCKS_PER_SEC/100000) {
+  while (clock() - start < CLOCKS_PER_SEC/25000) {
     int i = 0;
     // avoid busy-calling clock(), so stall a little on our own too. The limit 100000 is tuneable.
-    while(i < 100000){ ++i; }
+    while(i < 25000){ ++i; }
     ++iters;
   }
 }

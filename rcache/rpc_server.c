@@ -53,6 +53,53 @@ static uint64_t make_block_num(uint32_t node, uint64_t block)
 static uint64_t hit_ctr = 0;
 static uint64_t miss_ctr = 0;
 static uint64_t w_ctr = 0;
+static uint64_t w_lat = 0;
+
+float get_cpu_clock_speed(void)
+{
+	FILE* fp;
+	char buffer[1024], dummy[64];
+	size_t bytes_read;
+	char* match;
+	float clock_speed;
+
+	/* Read the entire contents of /proc/cpuinfo into the buffer.  */
+	fp = fopen ("/proc/cpuinfo", "r");
+	bytes_read = fread (buffer, 1, sizeof (buffer), fp);
+	fclose (fp);
+
+	/* Bail if read failed or if buffer isn't big enough.  */
+	if (bytes_read == 0)
+		return 0;
+
+	/* NUL-terminate the text.  */
+	buffer[bytes_read] = '\0';
+
+	/* Locate the line that starts with "cpu MHz".  */
+	match = strstr(buffer, "cpu MHz");
+	if (match == NULL) 
+		return 0;
+
+	match = strstr(match, ":");
+
+	/* Parse the line to extrace the clock speed.  */
+	sscanf (match, ": %f", &clock_speed);
+	return clock_speed;
+}
+
+// only called once, so fine.
+static float tsc_to_ms(uint64_t tsc)
+{
+    float clock_speed_mhz = get_cpu_clock_speed();
+    return (float)tsc / (clock_speed_mhz * 1000.0);
+}
+
+static unsigned long long asm_rdtscp(void)
+{
+    unsigned hi, lo;
+      __asm__ __volatile__ ("rdtscp" : "=a"(lo), "=d"(hi)::"rcx");
+        return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
 
 void handle_segfault(int sig)
 {
@@ -72,6 +119,8 @@ void handle_segfault(int sig)
 
 void signal_callback(struct app_context *msg)
 {
+  uint64_t stime = asm_rdtscp();
+
   pthread_mutex_lock(&lock);
   size_t lsize = lru_size();
 
@@ -103,8 +152,6 @@ void signal_callback(struct app_context *msg)
       ++miss_ctr;
     }
 
-    //printf("sending block %lu to node %lx\n", req.block_num, req.node_num);
-
     meta->sge_count = 1;
     meta->next = NULL;
 
@@ -114,6 +161,7 @@ void signal_callback(struct app_context *msg)
 
     IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(msg->sockfd, meta, MR_RCACHE, MR_DRAM_CACHE);
     assert(lsize == lru_size());
+  
   } else if (msg->data[0] == 'W') {
     struct send_req req;
     memcpy(&req, 1+msg->data, sizeof(struct send_req));
@@ -131,6 +179,8 @@ void signal_callback(struct app_context *msg)
       ++w_ctr;
       assert(evicted ? lsize == lru_size() : (1+lsize) == lru_size());
     }
+    w_lat += (asm_rdtscp()-stime);
+
   } else {
     printf("Odd message received.\n");
     exit(0);
@@ -193,6 +243,7 @@ int main(int argc, char **argv)
   }
   munmap(base, MEM_SIZE);
   printf("hit_ct: %lu, miss_ct: %lu, w_ct: %lu\n", hit_ctr, miss_ctr, w_ctr);
+  printf("w_lat: %.6f\n", tsc_to_ms(w_lat));
 
 	return 0;
 }

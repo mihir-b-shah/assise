@@ -799,6 +799,9 @@ class Benchmark {
         fprintf(stderr, "put error: %s\n", s.ToString().c_str());
         exit(1);
       }
+      if (i % 10000 == 0) {
+        printf("Reached %d operations.\n", i);
+      }
     }
     thread->stats.AddBytes(bytes);
   }

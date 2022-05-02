@@ -56,7 +56,7 @@ void rcache_read(struct rcache_req req)
   int ask = decide_ask_remote(&req);
   if (ask) {
     // perform remote cache read
-    enum fetch_res code = fetch_remote(&req);
+    enum fetch_res code = NONE_SENT; //fetch_remote(&req);
 
     switch (code) {
     case NONE_SENT: break;
@@ -68,6 +68,5 @@ void rcache_read(struct rcache_req req)
   }
 
   emul_ssd_read(&req);
-  //ssd_emul_latency(start);
+  ssd_emul_latency(start);
 }
-
