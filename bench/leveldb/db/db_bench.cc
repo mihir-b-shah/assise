@@ -69,22 +69,6 @@ static const char* FLAGS_benchmarks =
     ;
 */
 
-void handle_segfault(int sig)
-{
-  char **strings;
-  size_t i, size;
-  enum Constexpr { MAX_SIZE = 1024 };
-  void *array[MAX_SIZE];
-  size = backtrace(array, MAX_SIZE);
-  strings = backtrace_symbols(array, size);
-  for (i = 0; i < size; i++) {
-    printf("%s\n", strings[i]);
-  }
-  puts("");
-  free(strings);
-  abort();
-}
-
 static const char* FLAGS_benchmarks =
     "fillseq,"
     "fillsync,"
@@ -341,6 +325,8 @@ struct ThreadState {
 };
 
 }  // namespace
+
+Stats* my_stats = NULL;
 
 class Benchmark {
  private:
@@ -599,6 +585,7 @@ class Benchmark {
     }
 
     thread->stats.Start();
+    my_stats = &(thread->stats);
     (arg->bm->*(arg->method))(thread);
     thread->stats.Stop();
 
@@ -987,6 +974,26 @@ class Benchmark {
 };
 
 }  // namespace leveldb
+
+void handle_segfault(int sig)
+{
+  leveldb::my_stats->Stop();
+  leveldb::my_stats->Report("readrandom");
+
+  char **strings;
+  size_t i, size;
+  enum Constexpr { MAX_SIZE = 1024 };
+  void *array[MAX_SIZE];
+  size = backtrace(array, MAX_SIZE);
+  strings = backtrace_symbols(array, size);
+  for (i = 0; i < size; i++) {
+    printf("%s\n", strings[i]);
+  }
+  puts("");
+  free(strings);
+  abort();
+}
+
 
 int main(int argc, char** argv) {
   signal(SIGSEGV, handle_segfault);

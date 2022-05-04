@@ -27,6 +27,6 @@ WORKLOAD+=$1
 #./run.sh ./db_bench.mlfs --db=/mlfs --num=400000 --value_size=1024 --benchmarks=fillseq,fillrandom,readseq,readrandom,readhot
 #./run.sh ./db_bench.mlfs --db=/mlfs --num=400000 --value_size=1024 --benchmarks=fillseq,readhot
 #./run.sh ./db_bench.mlfs --db=/mlfs --num=400000 --value_size=1024 --benchmarks=fillseq
-./run.sh ./mlfs/db_bench.mlfs --db=/mlfs --num=750000 --value_size=4000 --benchmarks=$WORKLOAD
+./run.sh ./mlfs/db_bench.mlfs --db=/mlfs --num=200000 --compression_ratio=1.0 --value_size=4096 --benchmarks=$WORKLOAD
 #./run.sh ./db_bench.mlfs --db=/mlfs --num=400000 --value_size=1024 --benchmarks=fillsync
 

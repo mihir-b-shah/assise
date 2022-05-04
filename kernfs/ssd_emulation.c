@@ -16,6 +16,7 @@
 #include <storage/storage.h>
 
 static int shm_fd;
+static int mock_fd;
 static const char* shm_path = "ssd_map";
 static uint8_t* map_base;
 static volatile uint64_t num_migrated;
@@ -26,8 +27,12 @@ static uint64_t round_up(uint64_t v, unsigned pow2)
   return (v << pow2 >> pow2) + (1 << pow2);
 }
 
+static char buf[4096];
 void init_ssd_emul(void)
 {
+  mockfd = open("/tmp/mihirs_bak/mock_ssd", O_CREAT | O_RDWR | O_DIRECT | O_SYNC, ALLPERMS);
+  write(mockfd, buf, 4096);
+
   #ifdef KERNFS
   shm_fd = shm_open(shm_path, O_CREAT | O_RDWR, ALLPERMS);
   #else
@@ -77,16 +82,7 @@ void destroy_ssd_emul(void)
   shm_unlink(shm_path);
 }
 
-void ssd_emul_latency(clock_t opt_start)
+void ssd_emul_latency_read()
 {
-  // syscall latency fine since an ssd write would probably have similar latency.
-  // TODO: clock() is wall clock time, this is probably fine.
-  int iters = 0;
-  clock_t start = opt_start == 0 ? clock() : opt_start;
-  while (clock() - start < CLOCKS_PER_SEC/25000) {
-    int i = 0;
-    // avoid busy-calling clock(), so stall a little on our own too. The limit 100000 is tuneable.
-    while(i < 25000){ ++i; }
-    ++iters;
-  }
+  pread64(mockfd, buf, 4096);
 }

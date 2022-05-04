@@ -10,6 +10,6 @@ uint64_t get_num_migrated(void);
 void send_to_ssd(uint64_t blk);
 int ssd_has_blk(uint64_t blk);
 void destroy_ssd_emul(void);
-void ssd_emul_latency(clock_t);
+void ssd_emul_latency_read();
 
 #endif
