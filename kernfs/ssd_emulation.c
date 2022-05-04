@@ -1,4 +1,6 @@
 
+#define _GNU_SOURCE
+
 #include "ssd_emulation.h"
 
 #include <sys/shm.h>
@@ -30,8 +32,8 @@ static uint64_t round_up(uint64_t v, unsigned pow2)
 static char buf[4096];
 void init_ssd_emul(void)
 {
-  mockfd = open("/tmp/mihirs_bak/mock_ssd", O_CREAT | O_RDWR | O_DIRECT | O_SYNC, ALLPERMS);
-  write(mockfd, buf, 4096);
+  mock_fd = open("/tmp/mihirs_bak/mock_ssd", O_CREAT | O_RDWR | O_DIRECT | O_SYNC, ALLPERMS);
+  write(mock_fd, buf, 4096);
 
   #ifdef KERNFS
   shm_fd = shm_open(shm_path, O_CREAT | O_RDWR, ALLPERMS);
@@ -70,6 +72,7 @@ void send_to_ssd(uint64_t blk)
   map_base[blk] = 1;
   /* synchronize? we can probably tolerate some staleness here,
    * since if we think something never went to ssd, it doesn't harm correctness of fs */
+  // not calling ssd_emul_latency since cache latency is prob already high.
 }
 
 int ssd_has_blk(uint64_t blk)
@@ -84,5 +87,5 @@ void destroy_ssd_emul(void)
 
 void ssd_emul_latency_read()
 {
-  pread64(mockfd, buf, 4096);
+  pread64(mock_fd, buf, 4096, 0);
 }

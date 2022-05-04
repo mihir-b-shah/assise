@@ -14,7 +14,6 @@ static volatile uint32_t glob_seqn = 2;
 
 void send_to_rcache(uint64_t block)
 {
-  /*
   uint64_t stime = asm_rdtscp();
 
   struct conn_obj* dst_node = get_dest(block);
@@ -43,5 +42,4 @@ void send_to_rcache(uint64_t block)
 
   // TODO: modify the callback in kernfs/fs.c to make sure we ignore the ACK
 	g_perf_stats.rcache_send_tsc += asm_rdtscp() - stime;
-  */
 }
