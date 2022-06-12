@@ -67,6 +67,8 @@ static inline uint32_t last_compl_wr_id(struct conn_context *ctx, int send)
 		return ctx->last_rcv_compl;
 }
 
+struct context* get_context();
+
 //connection building
 void build_connection(struct rdma_cm_id *id);
 void build_shared_context(struct rdma_cm_id *id);

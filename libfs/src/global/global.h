@@ -104,6 +104,10 @@ void mlfs_setup(void);
 // # of LibFS processes (max)
 #define g_n_max_libfs 30
 
+// rdma/cache stuff
+#define g_max_sge 96
+#define g_max_meta 10
+
 /**
  *
  * All global variables here are default set by global.c

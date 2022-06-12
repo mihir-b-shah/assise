@@ -104,7 +104,7 @@ void MP_AWAIT_WORK_COMPLETION(int sockfd, uint32_t wr_id)
 		debug_print("spinning till WR %u completes (last completed WR -> %u)\n",
 				wr_id, last_compl_wr_id(ctx, 1));
 
-		while(cmp_counters(wr_id, last_compl_wr_id(ctx, 1)) > 0) {
+		while(cmp_counters(wr_id, last_compl_wr_id(ctx, 1)) != 0) {
 			ibw_cpu_relax();
 		}
 	}

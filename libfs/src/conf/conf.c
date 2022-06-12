@@ -52,7 +52,7 @@ static struct conn_obj make_conn(struct in_addr addr)
   }
   ++conn_ct;
 
-  return (struct conn_obj) {.addr = addr, .sockfd = sockfd};
+  return (struct conn_obj) {.addr = addr, .sockfd = sockfd, .rblock_addr = {NULL}};
 }
 
 static void kill_conn(struct conn_obj* obj)

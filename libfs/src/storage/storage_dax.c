@@ -317,6 +317,7 @@ uint8_t *dax_init(uint8_t dev, char *dev_path)
 	ioat_register(dev);
 #endif
 
+  printf("*** mmap MR_NVM_SHARED map start: %p\n", dax_addr[dev]);
 	return dax_addr[dev];
 }
 
@@ -345,6 +346,11 @@ int dax_read_unaligned(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offse
 			dev, blockno, (blockno * g_block_size_bytes) + offset, io_size);
 
 	return io_size;
+}
+
+void* dax_get_addr(uint8_t dev, addr_t blockno)
+{
+  return dax_addr[dev] + (blockno * g_block_size_bytes); 
 }
 
 /* optimization: instead of calling sfence every write,

@@ -18,6 +18,10 @@ const char* DEFAULT_PORT = "12345";
 //static uint32_t cqe_archive[ARCHIVE_SIZE] = {0};
 static struct context *s_ctx = NULL;
 
+struct context* get_context() {
+  return s_ctx;
+}
+
 int exit_rc_loop = 0;
 
 void build_connection(struct rdma_cm_id *id)
@@ -108,6 +112,7 @@ void build_shared_context(struct rdma_cm_id *id)
 	// allocate new device
 	debug_print("initializing rdma device-%d\n", s_ctx->n_dev);
 	s_ctx->ctx[s_ctx->n_dev] = id->verbs;
+  printf("Allocated s->ctx: %p\n", id->verbs);
 	s_ctx->pd[s_ctx->n_dev] = ibv_alloc_pd(id->verbs);
 	ctx->devid = s_ctx->n_dev;
 	s_ctx->n_dev++;

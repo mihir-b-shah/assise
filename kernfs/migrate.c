@@ -258,7 +258,7 @@ do_force_migration:
         continue;
 
       //printf("*** added to list head.\n");
-      printf("Evicting block %lu with freq %lu, lru_n:%lu\n", node->key.block, node->access_freq, from_lru->n);
+      //printf("Evicting block %lu with freq %lu, lru_n:%lu\n", node->key.block, node->access_freq, from_lru->n);
       list_add(&node->list, &migrate_list.head);
       migrate_list.n++;
 

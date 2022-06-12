@@ -5,14 +5,14 @@ RDMA_DIR := $(abspath $(CURDIR)/..)
 NVML_DIR := $(abspath $(CURDIR)/../../nvml/src)
 INCLUDES  := -I$(RDMA_DIR) -I.
 
-LIBS = -L$(RDMA_DIR) -lrdma -Wl,-rpath=$(abspath $(RDMA_DIR)) -L$(NVML_DIR)/nondebug -lpmem -Wl,-rpath=$(abspath $(NVML_DIR)/nondebug) -lm -lrt
+LIBS = -L$(RDMA_DIR) -lrdma -Wl,-rpath=$(abspath $(RDMA_DIR)) -lm -lrt -libverbs
 INCLUDES  := $(addprefix -I,src/ $(RDMA_CORE_DIR)/build/include $(RDMA_DIR) $(NVML_DIR)/include)
 
 RM = rm -f  # rm command
 #SRCS = master_sync.c slave_sync.c master_passive.c slave_passive.c # source files
 DEPS = time_stat.c
 #SRCS = master_sync.c slave_passive.c rpc_client.c rpc_server.c # FIXME: tempoarily removing some srcs
-SRCS = rpc_client.c rpc_server.c
+SRCS = rpc_client.c rpc_server.c sge_client.c sge_server.c
 OBJS = $(SRCS:.c=.o)
 OBJS += $(DEPS:.c=.o)
 BIN = $(SRCS:.c=)

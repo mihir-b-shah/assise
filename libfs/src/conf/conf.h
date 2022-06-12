@@ -4,10 +4,12 @@
 
 #include "conf_client.h"
 #include <stdint.h>
+#include <global/global.h>
 
 struct conn_obj {
   struct in_addr addr;
   int sockfd;
+  void* rblock_addr[g_max_meta];
 };
 
 struct conn_ctx {

@@ -10,6 +10,7 @@ struct storage_operations
 	int (*read)(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size);
 	int (*read_unaligned)(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offset,
 			uint32_t io_size);
+  void* (*get_addr)(uint8_t dev, addr_t blockno);
 	int (*write)(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size);
 	int (*write_unaligned)(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offset,
 			uint32_t io_size);
@@ -79,6 +80,7 @@ uint8_t *dax_init(uint8_t dev, char *dev_path);
 int dax_read(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size);
 int dax_read_unaligned(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offset,
     uint32_t io_size);
+void* dax_get_addr(uint8_t dev, addr_t blockno);
 int dax_write(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t io_size);
 int dax_write_unaligned(uint8_t dev, uint8_t *buf, addr_t blockno, uint32_t offset, 
 		uint32_t io_size);

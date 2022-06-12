@@ -22,6 +22,7 @@
 #include "filesystem/slru.h"
 #include "migrate.h"
 #include "ssd_emulation.h"
+#include "storage/storage.h"
 
 #ifdef DISTRIBUTED
 #include "distributed/peer.h"
@@ -2191,10 +2192,12 @@ void init_fs(void)
 			case MR_NVM_SHARED: {
 				mrs[i].type = MR_NVM_SHARED;
 				mrs[i].addr = (uint64_t)g_bdev[g_root_dev]->map_base_addr;
+        printf("*** MR_NVM_SHARED map start: %p\n", mrs[i].addr);
 				//mrs[i].length = dev_size[g_root_dev];
 				//mrs[i].length = (1UL << 30);
 				//mrs[i].length = (sb[g_root_dev]->ondisk->size << g_block_size_shift);
-				mrs[i].length = (disk_sb[g_root_dev].datablock_start - disk_sb[g_root_dev].inode_start << g_block_size_shift);
+				mrs[i].length = dev_size[g_root_dev];
+        printf("*** MR_NVM_SHARED map length: %p\n", mrs[i].length);
 				break;
 			}
 			/*
@@ -2238,8 +2241,27 @@ void init_fs(void)
 #ifdef DISTRIBUTED
 void signal_callback(struct app_context *msg)
 {
-  static pthread_mutex_t sig_lock = PTHREAD_MUTEX_INITIALIZER;
-  pthread_mutex_lock(&sig_lock);
+  //static pthread_mutex_t sig_lock = PTHREAD_MUTEX_INITIALIZER;
+  //pthread_mutex_lock(&sig_lock);
+
+  if (msg->data && msg->data[0] == 'N') {
+    // a next-ptr message from the remote cache node.
+    struct conn_ctx* ctx = update_cache_conf();
+    size_t i;
+    for (i = 0; ctx->n; ++i) {
+      if (ctx->conn_ring[i].sockfd == msg->sockfd) {
+        // reverse order to ensure separation
+        for (int j = g_max_meta-1; j>=0; --j) {
+          assert(ctx->conn_ring[i].rblock_addr[j] == NULL);
+          __atomic_store_n(&(ctx->conn_ring[i].rblock_addr[j]), 
+            ((void**) (8+msg->data))[j], __ATOMIC_SEQ_CST);
+        }
+        break;
+      }
+    }
+    assert(i < ctx->n);
+    return;
+  }
 
 	char cmd_hdr[12];
 	// handles 4 message types (bootstrap, log, digest, lease)
@@ -2449,17 +2471,17 @@ void signal_callback(struct app_context *msg)
 		rpc_register_log_response(msg->sockfd, msg->id);
 	}
 	else if(cmd_hdr[0] == 'p' && !g_self_id) { //log registration response (ignore)
-    pthread_mutex_unlock(&sig_lock);
+    //pthread_mutex_unlock(&sig_lock);
 		return;
 	}
 	else if(cmd_hdr[0] == 'a') { //ack (ignore)
-    pthread_mutex_unlock(&sig_lock);
+    //pthread_mutex_unlock(&sig_lock);
 		return;
   }
 	else
 		panic("unidentified remote signal\n");
   
-  pthread_mutex_unlock(&sig_lock);
+  //pthread_mutex_unlock(&sig_lock);
 }
 #endif
 

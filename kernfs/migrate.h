@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 //#define MIN_MIGRATE_ENTRY 512 
-#define MIN_MIGRATE_ENTRY 1024
+#define MIN_MIGRATE_ENTRY 960
 #define BLOCKS_PER_LRU_ENTRY (LRU_ENTRY_SIZE >> g_block_size_shift)
 #define BLOCKS_TO_LRU_ENTRIES(x) ((x) / BLOCKS_PER_LRU_ENTRY)
 
