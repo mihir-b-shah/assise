@@ -15,7 +15,7 @@ static void set_lhead(uint8_t* p)
   __atomic_store_n(&free_lhead, p, __ATOMIC_SEQ_CST);
 }
 
-static uint8_t* get_lhead()
+static volatile uint8_t* get_lhead()
 {
   return __atomic_load_n(&free_lhead, __ATOMIC_SEQ_CST);
 }
@@ -38,14 +38,14 @@ void blk_init(uint8_t* mem_base_, size_t mem_size_)
 uint8_t* blk_alloc(void)
 {
   if (!get_lhead()) {
-    printf("Could not alloc a block.\n");
+    assert(0 && "Could not alloc a block.\n");
     return NULL;
   }
 
-  uint8_t* to_give = get_lhead();
-  uint64_t* view = (uint64_t*) to_give;
+  volatile uint8_t* to_give = get_lhead();
+  volatile uint64_t* view = (volatile uint64_t*) to_give;
   set_lhead((uint8_t*) *view);
-  return to_give;
+  return (uint8_t*) to_give;
 }
 
 void blk_free(uint8_t* ptr)

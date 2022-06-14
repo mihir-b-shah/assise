@@ -2243,6 +2243,8 @@ void signal_callback(struct app_context *msg)
 {
   //static pthread_mutex_t sig_lock = PTHREAD_MUTEX_INITIALIZER;
   //pthread_mutex_lock(&sig_lock);
+  
+  printf("*** %c\n", msg->data ? msg->data[0] : '0');
 
   if (msg->data && msg->data[0] == 'N') {
     // a next-ptr message from the remote cache node.
@@ -2260,6 +2262,7 @@ void signal_callback(struct app_context *msg)
       }
     }
     assert(i < ctx->n);
+    printf("*** Finished N update.\n");
     return;
   }
 

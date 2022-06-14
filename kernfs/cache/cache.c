@@ -47,6 +47,7 @@ void send_to_rcache(uint64_t block)
   void* rblock_addr[g_max_meta] = {NULL};
   rdma_meta_t* metas[1+g_max_meta] = {NULL};
 
+  printf("*** Reached max meta.\n");
   for (size_t i = 0; i<g_max_meta; ++i) {
     while ((rblock_addr[i] = __atomic_exchange_n(
       &(dst_node->rblock_addr[i]), NULL, __ATOMIC_SEQ_CST)) == NULL) {
@@ -54,6 +55,7 @@ void send_to_rcache(uint64_t block)
     }
     metas[i] = (rdma_meta_t*) malloc(sizeof(rdma_meta_t) + g_max_sge * sizeof(struct ibv_sge));
   }
+  printf("*** Left max meta.\n");
 
   for (size_t i = 0; i<g_max_meta; ++i) {
     metas[i]->addr = (uintptr_t) rblock_addr[i];

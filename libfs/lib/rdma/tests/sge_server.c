@@ -7,7 +7,7 @@
 
 volatile sig_atomic_t stop;
 
-#define MAX_SGE 16
+#define MAX_SGE 96
 
 void* rmem;
 int BUFFER_COUNT = 5;

@@ -8,8 +8,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "agent.h"
 #include "conf_client.h"
+#include "globals.h"
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -117,9 +119,21 @@ void handle_segfault(int sig)
   abort();
 }
 
+struct fshare_safe_u64 {
+  uint32_t ct;
+  char junk[60];
+};
+struct fshare_safe_u64 buf_cts[MAX_CONNECTIONS] = {{0, {0}}};
+
 void refresh_appl_buffer(int sockfd)
 {
   static uint32_t seqn = 2;
+
+  if (++buf_cts[sockfd].ct == 10) {
+    return;
+  } else {
+    buf_cts[sockfd].ct = 0;
+  }
 
   printf("Sending msg.\n");
   // send the application node its initial buffer.
@@ -143,7 +157,8 @@ void signal_callback(struct app_context *msg)
   if (!msg->data) {
     // immediate notification from an application
     uint32_t appl_ip = msg->id;
-    printf("Received msg.\n");
+    printf("Received msg from ip: %d.%d.%d.%d.\n", appl_ip & 0xff, (appl_ip >> 8) & 0xff,
+      (appl_ip >> 16) & 0xff, (appl_ip >> 24) & 0xff);
     refresh_appl_buffer(msg->sockfd);
   }
 
@@ -174,7 +189,7 @@ int main(int argc, char **argv)
 	}
 
 	portno = argv[1];
-  MEM_SIZE = strtoull(argv[2], NULL, 16);
+  MEM_SIZE = BLK_SIZE * strtoull(argv[2], NULL, 16);
   
   conf_cmd_t ccmd;
   init_cmd(&ccmd);

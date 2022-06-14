@@ -1,4 +1,5 @@
 #include "rdma_ch.h"
+#include <assert.h>
 
 //event channel. used to setup rdma RCs and communicate mr keys
 struct rdma_event_channel *ec = NULL;
@@ -228,8 +229,15 @@ void build_qp_attr(struct rdma_cm_id *id, struct ibv_qp_init_attr *qp_attr)
 
 	qp_attr->cap.max_send_wr = MAX_SEND_QUEUE_SIZE;
 	qp_attr->cap.max_recv_wr = MAX_RECV_QUEUE_SIZE;
-	qp_attr->cap.max_send_sge = 16;
-	qp_attr->cap.max_recv_sge = 16;
+  // should work...
+
+  struct ibv_device_attr attrs;
+  if (get_context() != NULL) {
+    ibv_query_device(get_context()->ctx[0], &attrs);
+    assert(attrs.max_sge == 96 && attrs.max_sge_rd == 96);
+  }
+	qp_attr->cap.max_send_sge = 96;
+	qp_attr->cap.max_recv_sge = 96;
 }
 
 void event_loop(struct rdma_event_channel *ec, int exit_on_connect, int exit_on_disconnect)
