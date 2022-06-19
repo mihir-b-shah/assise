@@ -125,8 +125,8 @@ struct conn_ctx* update_cache_conf()
     loc_version = conf->version;
     adjust_loc_conf(conf);
 
-    rw_spinlock_wr_unlock(&(ctx.lock));
     pthread_mutex_unlock(&(conf->mutex));
+    rw_spinlock_wr_unlock(&(ctx.lock));
   }
   
   rw_spinlock_rd_lock(&(ctx.lock));

@@ -2243,9 +2243,6 @@ void init_fs(void)
 #ifdef DISTRIBUTED
 void signal_callback(struct app_context *msg)
 {
-  //static pthread_mutex_t sig_lock = PTHREAD_MUTEX_INITIALIZER;
-  //pthread_mutex_lock(&sig_lock);
-  
   printf("*** %c\n", msg->data ? msg->data[0] : '0');
 
   if (msg->data && msg->data[0] == 'N') {
@@ -2477,17 +2474,13 @@ void signal_callback(struct app_context *msg)
 		rpc_register_log_response(msg->sockfd, msg->id);
 	}
 	else if(cmd_hdr[0] == 'p' && !g_self_id) { //log registration response (ignore)
-    //pthread_mutex_unlock(&sig_lock);
 		return;
 	}
 	else if(cmd_hdr[0] == 'a') { //ack (ignore)
-    //pthread_mutex_unlock(&sig_lock);
 		return;
   }
 	else
 		panic("unidentified remote signal\n");
-  
-  //pthread_mutex_unlock(&sig_lock);
 }
 #endif
 
