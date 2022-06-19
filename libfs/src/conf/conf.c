@@ -24,7 +24,7 @@ void setup_appl_conf()
   ip_int = addr.s_addr;
 }
 
-static struct conn_ctx ctx = {.conn_ring = NULL, .n = 0};
+static struct conn_ctx ctx = {.conn_ring = NULL, .n = 0, .lock = RW_SPINLOCK_INITIALIZER};
 
 static int conf_cmp(const void* e1, const void* e2)
 {
@@ -112,14 +112,28 @@ struct conn_ctx* update_cache_conf()
 {
   config_t* conf = get_cache_conf();
 
-  // i hope double checked locking is fine here (not broken)?
-  if (conf->version != loc_version) {
+  // TODO: is this correct?
+  int old_loc_version;
+  __atomic_exchange(&loc_version, &(conf->version), &old_loc_version, __ATOMIC_SEQ_CST);
+  if (old_loc_version != __atomic_load_n(&loc_version, __ATOMIC_SEQ_CST)) {
     pthread_mutex_lock(&(conf->mutex));
-    loc_version = conf->version;
+    /* no chance of deadlock since we're a single thread and the only one that can ever
+       hold these two locks concurrently. */
+    rw_spinlock_wr_lock(&(ctx.lock));
+
     // new conf! find the diffs and adjust our connections.
+    loc_version = conf->version;
     adjust_loc_conf(conf);
+
+    rw_spinlock_wr_unlock(&(ctx.lock));
     pthread_mutex_unlock(&(conf->mutex));
   }
-
+  
+  rw_spinlock_rd_lock(&(ctx.lock));
   return &ctx;
+}
+
+void release_rd_lock()
+{
+  rw_spinlock_rd_unlock(&(ctx.lock));
 }

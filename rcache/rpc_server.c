@@ -52,6 +52,8 @@ static uint64_t make_block_num(uint32_t node, uint64_t block)
 #define MR_RCACHE 0
 #define MR_DRAM_CACHE 2
 
+#define BLOCK_DEPTH 10
+
 static uint64_t hit_ctr = 0;
 static uint64_t miss_ctr = 0;
 static uint64_t w_ctr = 0;
@@ -123,13 +125,13 @@ struct fshare_safe_u64 {
   uint32_t ct;
   char junk[60];
 };
-struct fshare_safe_u64 buf_cts[MAX_CONNECTIONS] = {{0, {0}}};
+struct fshare_safe_u64 buf_cts[MAX_CONNECTIONS] = {{BLOCK_DEPTH-1, {0}}};
 
 void refresh_appl_buffer(int sockfd)
 {
   static uint32_t seqn = 2;
 
-  if (++buf_cts[sockfd].ct == 10) {
+  if (++buf_cts[sockfd].ct < BLOCK_DEPTH) {
     return;
   } else {
     buf_cts[sockfd].ct = 0;
@@ -142,7 +144,7 @@ void refresh_appl_buffer(int sockfd)
   app->id = __atomic_fetch_add(&seqn, 1, __ATOMIC_SEQ_CST);
   app->data[0] = 'N';
 
-  for (size_t i = 0; i<10; ++i) {
+  for (size_t i = 0; i<BLOCK_DEPTH; ++i) {
     ((void**) (8+app->data))[i] = blk_alloc();
   }
 

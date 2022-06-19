@@ -10,6 +10,7 @@ struct send_req {
   uint8_t data[]; // zero length struct
 };
 
+void init_cache();
 void send_to_rcache(uint64_t block);
 
 #endif

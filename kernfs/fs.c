@@ -32,6 +32,7 @@
 
 #include "conf/conf.h"
 #include "conf_client.h"
+#include "cache/cache.h"
 
 #define _min(a, b) ({\
 		__typeof__(a) _a = a;\
@@ -2231,6 +2232,7 @@ void init_fs(void)
   init_conf(get_cache_conf());
   start_appl_client(get_cache_conf());
   setup_appl_conf();
+  init_cache();
 
 	wait_for_event();
 }
@@ -2254,15 +2256,16 @@ void signal_callback(struct app_context *msg)
       if (ctx->conn_ring[i].sockfd == msg->sockfd) {
         // reverse order to ensure separation
         for (int j = g_max_meta-1; j>=0; --j) {
-          assert(ctx->conn_ring[i].rblock_addr[j] == NULL);
           __atomic_store_n(&(ctx->conn_ring[i].rblock_addr[j]), 
             ((void**) (8+msg->data))[j], __ATOMIC_SEQ_CST);
+          //printf("Wrote to %p\n", &(ctx->conn_ring[i].rblock_addr[j]));
         }
         break;
       }
     }
     assert(i < ctx->n);
-    printf("*** Finished N update.\n");
+    release_rd_lock();
+    printf("*** Finished N update with sockfd=%d.\n", ctx->conn_ring[i].sockfd);
     return;
   }
 

@@ -119,8 +119,8 @@ static void* run_appl_client(void* arg)
     int n = check(recvfrom(sockfd, buf, BUFSIZE-1, 0, NULL, 0));
 
     // update conf
+    __atomic_add_fetch(&(conf->version), 1, __ATOMIC_SEQ_CST);
     pthread_mutex_lock(&(conf->mutex));
-    ++(conf->version);
 
     if (conf->ips != NULL) {
       free(conf->ips);

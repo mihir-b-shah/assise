@@ -637,8 +637,10 @@ struct rdma_cm_id* find_connection_by_wc(struct ibv_wc *wc)
 
 struct rdma_cm_id* get_connection(int sockfd)
 {
-	if(sockfd > MAX_CONNECTIONS)
+	if(sockfd > MAX_CONNECTIONS) {
+    printf("invalid sockfd: %d\n", sockfd);
 		mp_die("invalid sockfd; must be less than MAX_CONNECTIONS");
+  }
 
 	if(s_conn_bitmap[sockfd])
 		return s_conn_ctx[sockfd]->id;

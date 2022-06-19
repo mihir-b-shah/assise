@@ -140,8 +140,10 @@ void set_channel_state(struct conn_context *ctx, int new_state)
 
 struct conn_context* get_channel_ctx(int sockfd)
 {
-	if(sockfd > MAX_CONNECTIONS)
+	if(sockfd > MAX_CONNECTIONS) {
+    printf("invalid sockfd: %d\n", sockfd);
 		mp_die("invalid sockfd; must be less than MAX_CONNECTIONS");
+  }
 
 	if(s_conn_bitmap[sockfd])
 		return s_conn_ctx[sockfd];
