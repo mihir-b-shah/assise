@@ -156,8 +156,8 @@ int decode_rsync_metadata(uint32_t meta, uint16_t *seq_n, addr_t *n_log_blk, int
 	if(ack)
 		*ack = (int) (meta & 1);
 
-	mlfs_printf("decoding rsync metadata: peer_id %u seqn %u block_nr %lu rotated %u ack %u\n",
-			*requester_id, *seq_n, *n_log_blk, *rotated, *ack);
+	//mlfs_printf("decoding rsync metadata: peer_id %u seqn %u block_nr %lu rotated %u ack %u\n",
+	//		*requester_id, *seq_n, *n_log_blk, *rotated, *ack);
 
 	return 0;
 }
@@ -228,7 +228,7 @@ void update_peer_digest_state(peer_meta_t *peer, addr_t start_digest, int n_dige
 	}
 
 	pthread_mutex_unlock(peer->shared_rsync_n_lock);
-	mlfs_printf("update peer %d digest state: version %u block_nr %lu\n", peer->id, peer->start_version, peer->start_digest);
+	//mlfs_printf("update peer %d digest state: version %u block_nr %lu\n", peer->id, peer->start_version, peer->start_digest);
 	//pthread_mutex_unlock(peer->shared_rsync_addr_lock);
 }
 
@@ -261,8 +261,8 @@ void wait_on_peer_digesting(peer_meta_t *peer)
 
 void wait_till_digest_checkpoint(peer_meta_t *peer, int version, addr_t block_nr)
 {
-	mlfs_printf("wait till digest current (v:%d,tail:%lu) required (v:%d,tail:%lu)\n",
-			peer->start_version, peer->start_digest, version, block_nr);
+	//mlfs_printf("wait till digest current (v:%d,tail:%lu) required (v:%d,tail:%lu)\n",
+	//		peer->start_version, peer->start_digest, version, block_nr);
 
 #if 0
 	while(peer->digesting || peer->start_version < version ||

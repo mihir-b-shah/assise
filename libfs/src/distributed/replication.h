@@ -156,7 +156,7 @@ typedef void (*signal_cb_fn)(struct app_context *);
 
 static inline void set_peer_digesting(peer_meta_t *peer)
 {
-	mlfs_printf("set digesting for peer %d\n", peer->id);
+	//mlfs_printf("set digesting for peer %d\n", peer->id);
 	while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (!cmpxchg(&peer->digesting, 0, 1)) 
@@ -169,7 +169,7 @@ static inline void set_peer_digesting(peer_meta_t *peer)
 
 static inline void clear_peer_digesting(peer_meta_t *peer)
 {
-	mlfs_printf("clear digesting for peer %d\n", peer->id);
+	//mlfs_printf("clear digesting for peer %d\n", peer->id);
 	//while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (cmpxchg(&peer->digesting, 1, 0)) 
@@ -182,7 +182,7 @@ static inline void clear_peer_digesting(peer_meta_t *peer)
 
 static inline void set_peer_syncing(peer_meta_t *peer, int seqn)
 {
-	mlfs_printf("set syncing for peer %d seqn %d\n", peer->id, seqn);
+	//mlfs_printf("set syncing for peer %d seqn %d\n", peer->id, seqn);
 	while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (!cmpxchg(&peer->syncing[seqn], 0, 1)) 
@@ -195,7 +195,7 @@ static inline void set_peer_syncing(peer_meta_t *peer, int seqn)
 
 static inline void clear_peer_syncing(peer_meta_t *peer, int seqn)
 {
-	mlfs_printf("clear syncing for peer %d seqn %d\n", peer->id, seqn);
+	//mlfs_printf("clear syncing for peer %d seqn %d\n", peer->id, seqn);
 	//while (1) {
 		//if (!xchg_8(&g_fs_log->digesting, 1)) 
 		if (cmpxchg(&peer->syncing[seqn], 1, 0))

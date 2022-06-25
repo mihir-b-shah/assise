@@ -630,7 +630,7 @@ int digest_allocate(uint8_t from_dev, uint8_t to_dev, int libfs_id, uint32_t inu
 	uint64_t blk_length;
 	int ret;
 
-	mlfs_printf("[ALLOCATE] from %u to %u, inum %u, size %lu\n", from_dev, to_dev, inum, length);
+	//mlfs_printf("[ALLOCATE] from %u to %u, inum %u, size %lu\n", from_dev, to_dev, inum, length);
 
 	ip = icache_find(inum);
 	if (!ip) {
@@ -648,7 +648,7 @@ int digest_allocate(uint8_t from_dev, uint8_t to_dev, int libfs_id, uint32_t inu
 	if (length % g_block_size_bytes)
 		blk_length++;
 
-	mlfs_printf("allocating %lu blocks!\n", blk_length);
+	//mlfs_printf("allocating %lu blocks!\n", blk_length);
 
 	handle.dev = to_dev;
 	handle.libfs = libfs_id;
@@ -663,9 +663,9 @@ int digest_allocate(uint8_t from_dev, uint8_t to_dev, int libfs_id, uint32_t inu
 		else
 			map.m_len = blk_length - blk_alloced;
 
-		mlfs_printf("try allocate %u blocks, lblk start %u\n", map.m_len,  map.m_lblk);
+		//mlfs_printf("try allocate %u blocks, lblk start %u\n", map.m_len,  map.m_lblk);
 		ret = mlfs_ext_get_blocks(&handle, ip, &map, MLFS_GET_BLOCKS_CREATE);
-		mlfs_printf("allocated %d blocks from %lu\n", ret, map.m_pblk);
+		//mlfs_printf("allocated %d blocks from %lu\n", ret, map.m_pblk);
 
 		if (ret <= 0) {
 				mlfs_printf("mlfs_ext_get_blocks failed, ret %d!", ret);
@@ -1833,7 +1833,7 @@ static void handle_digest_request(void *arg)
 	double end_sec = (double)(end_time.tv_sec * 1000000000.0 + (double)end_time.tv_nsec) / 1000000000.0;
 	run_sec = end_sec - start_sec;
 
-    	mlfs_printf("Total runtime (s): %lf\n", run_sec);
+    	//mlfs_printf("Total runtime (s): %lf\n", run_sec);
 #endif
 
 	mlfs_free(arg);
@@ -2243,8 +2243,6 @@ void init_fs(void)
 #ifdef DISTRIBUTED
 void signal_callback(struct app_context *msg)
 {
-  printf("*** %c\n", msg->data ? msg->data[0] : '0');
-
   if (msg->data && msg->data[0] == 'N') {
     // a next-ptr message from the remote cache node.
     struct conn_ctx* ctx = update_cache_conf();
@@ -2282,7 +2280,7 @@ void signal_callback(struct app_context *msg)
 		//uint32_t n_digest;
 		//addr_t start_blk, log_end;
 		
-		printf("peer recv: %s\n", msg->data);
+		//printf("peer recv: %s\n", msg->data);
 
 		struct digest_arg *digest_arg = (struct digest_arg *)mlfs_alloc(sizeof(struct digest_arg));
 		digest_arg->sock_fd = msg->sockfd;

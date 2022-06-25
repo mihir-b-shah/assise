@@ -473,7 +473,7 @@ int rpc_lease_flush_response(int sockfd, uint32_t seq_n, uint32_t inum, uint32_t
 	msg->id = seq_n; //set immediate to sequence number in order for requester to match it
 
 	mlfs_info("trigger remote revoke response: inum[%u] version[%u] blknr[%lu]\n", inum, version, blknr);
-	mlfs_printf("%s\n", msg->data);
+	//mlfs_printf("%s\n", msg->data);
 
 	MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
 	return 0;
@@ -508,7 +508,7 @@ int rpc_lease_flush(int peer_id, uint32_t inum, int force_digest)
 
 	snprintf(msg->data, RPC_MSG_BYTES, "|flush |%u|%d", inum, force_digest);
 
-	mlfs_printf("peer send: %s\n", msg->data);
+	//mlfs_printf("peer send: %s\n", msg->data);
 
 	MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
 
@@ -544,7 +544,7 @@ int rpc_lease_invalid(int sockfd, int peer_id, uint32_t inum, uint32_t seqn)
 
 	snprintf(msg->data, RPC_MSG_BYTES, "|error |%u", inum);
 
-	mlfs_printf("peer send: %s\n", msg->data);
+	//mlfs_printf("peer send: %s\n", msg->data);
 
 	MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
 

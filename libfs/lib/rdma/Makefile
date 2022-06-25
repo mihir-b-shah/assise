@@ -1,6 +1,6 @@
 CC = gcc #-D_GNU_SOURCE # C compiler
-#CFLAGS = -fPIC -Wall -Wextra -O2 -g # C flags
-CFLAGS = -fPIC -O0 -g
+CFLAGS = -fPIC -Wall -Wextra -O2 -g # C flags
+#CFLAGS = -fPIC -O0 -g
 LDFLAGS = -shared
 
 RM = rm -f  # rm command

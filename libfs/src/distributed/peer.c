@@ -88,7 +88,7 @@ void add_peer_socket(int sockfd)
 		peer = mlfs_zalloc(sizeof(struct peer_id));
 		strncpy(peer->ip, mp_channel_ip(sockfd), sizeof(char)*INET_ADDRSTRLEN);
 		peer->pid = mp_channel_rpid(sockfd);
-		mlfs_printf("Peer connected (ip: %s, pid: %u)\n", peer->ip, peer->pid);
+		//mlfs_printf("Peer connected (ip: %s, pid: %u)\n", peer->ip, peer->pid);
 	}
 
 	mlfs_assert(type < SOCK_TYPE_COUNT);

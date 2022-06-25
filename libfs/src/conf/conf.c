@@ -113,16 +113,17 @@ struct conn_ctx* update_cache_conf()
   config_t* conf = get_cache_conf();
 
   // TODO: is this correct?
-  int old_loc_version;
-  __atomic_exchange(&loc_version, &(conf->version), &old_loc_version, __ATOMIC_SEQ_CST);
-  if (old_loc_version != __atomic_load_n(&loc_version, __ATOMIC_SEQ_CST)) {
+  //int old_loc_version;
+  //__atomic_exchange(&loc_version, &(conf->version), &old_loc_version, __ATOMIC_SEQ_CST);
+  if (__atomic_load_n(&(conf->version), __ATOMIC_SEQ_CST) == 1) {
     pthread_mutex_lock(&(conf->mutex));
     /* no chance of deadlock since we're a single thread and the only one that can ever
        hold these two locks concurrently. */
     rw_spinlock_wr_lock(&(ctx.lock));
 
     // new conf! find the diffs and adjust our connections.
-    loc_version = conf->version;
+    //loc_version = conf->version;
+    __atomic_store_n(&(conf->version), 0, __ATOMIC_SEQ_CST);
     adjust_loc_conf(conf);
 
     pthread_mutex_unlock(&(conf->mutex));

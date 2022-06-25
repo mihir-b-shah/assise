@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -fPIC -O0 -g
+CFLAGS = -fPIC -O2 -g
 LDFLAGS = -shared
 
 RM = rm -f

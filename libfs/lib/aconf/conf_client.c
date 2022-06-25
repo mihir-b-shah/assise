@@ -102,6 +102,9 @@ static int check(int code)
 
 static void* run_appl_client(void* arg)
 {
+  // ok, only used in one thread.
+  static int init = 0;
+
   config_t* conf = (config_t*) arg;
 
   int sockfd;
@@ -119,7 +122,11 @@ static void* run_appl_client(void* arg)
     int n = check(recvfrom(sockfd, buf, BUFSIZE-1, 0, NULL, 0));
 
     // update conf
-    __atomic_add_fetch(&(conf->version), 1, __ATOMIC_SEQ_CST);
+    if (!init) {
+      __atomic_store_n(&(conf->version), 1, __ATOMIC_SEQ_CST);
+      init = 1;
+    }
+    // __atomic_add_fetch(&(conf->version), 1, __ATOMIC_SEQ_CST);
     pthread_mutex_lock(&(conf->mutex));
 
     if (conf->ips != NULL) {
@@ -174,3 +181,4 @@ void start_cache_client(conf_cmd_t* ccmd)
   pthread_t thr;
   pthread_create(&thr, NULL, run_cache_client, (void*) ccmd);
 }
+

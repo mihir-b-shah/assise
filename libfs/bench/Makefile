@@ -10,7 +10,7 @@ LIBFS_DIR = $(CUR_DIR)/../build/
 RDMA_DIR = $(CUR_DIR)/../lib/rdma/
 INCLUDES= -I$(LIBFS_DIR)/../src -I$(RDMA_DIR)
 
-CFLAGS=$(INCLUDES) -std=gnu99
+CFLAGS=$(INCLUDES) -std=gnu99 -O2
 
 LDFLAGS = -Wl,-rpath=$(abspath $(LIBFS_DIR)) \
 					-Wl,-rpath=$(abspath $(LIBFS_DIR)) \
