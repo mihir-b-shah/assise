@@ -155,9 +155,11 @@ struct app_response { //used to keep track of pending responses
 typedef void(*app_conn_cb_fn)(int sockfd);
 typedef void(*app_disc_cb_fn)(int sockfd);
 typedef void(*app_recv_cb_fn)(struct app_context *msg);
+typedef void(*app_cq_cb_fn)(uint32_t imm);
 
 extern app_conn_cb_fn app_conn_event;
 extern app_disc_cb_fn app_disc_event;
 extern app_recv_cb_fn app_recv_event;
+extern app_cq_cb_fn app_cq_event;
 
 #endif

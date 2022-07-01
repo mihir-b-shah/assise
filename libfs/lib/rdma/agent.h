@@ -23,6 +23,8 @@ void init_rdma_agent(char *listen_port, struct mr_context *regions,
 		app_recv_cb_fn recv_callback);
 */
 
+void set_cq_cb_fn(app_cq_cb_fn fn);
+
 void init_rdma_agent(char *listen_port, struct mr_context *regions,
 		int region_count, uint16_t buffer_size, int ch_type,
 		app_conn_cb_fn app_connect,

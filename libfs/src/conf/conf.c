@@ -76,6 +76,7 @@ static void adjust_loc_conf(config_t* conf)
     ctx.conn_ring = malloc(sizeof(struct conn_obj));
     ctx.conn_ring[0].addr.s_addr = 0xffffffffUL;
     ctx.conn_ring[0].sockfd = -1;
+    ctx.conn_ring[0].idx = 0;
   }
 
   // compute a diff between this conf 
@@ -85,6 +86,7 @@ static void adjust_loc_conf(config_t* conf)
   struct conn_obj* loc_ring = malloc((1+conf->n) * sizeof(struct conn_obj));
   loc_ring[conf->n].addr.s_addr = 0xffffffffUL;
   loc_ring[conf->n].sockfd = -1;
+  loc_ring[conf->n].idx = conf->n;
   
   int ptr_ring = 0;
   int ptr_conf = 0;
@@ -95,6 +97,7 @@ static void adjust_loc_conf(config_t* conf)
       ++ptr_ring;
     } else if (ctx.conn_ring[ptr_ring].addr.s_addr > conf->ips[ptr_conf].s_addr) {
       loc_ring[ptr_conf] = make_conn(conf->ips[ptr_conf]);
+      loc_ring[ptr_conf].idx = ptr_conf;
       ++ptr_conf;
     } else {
       loc_ring[ptr_conf] = ctx.conn_ring[ptr_ring];
@@ -130,7 +133,7 @@ struct conn_ctx* update_cache_conf()
     rw_spinlock_wr_unlock(&(ctx.lock));
   }
   
-  rw_spinlock_rd_lock(&(ctx.lock));
+  //rw_spinlock_rd_lock(&(ctx.lock));
   return &ctx;
 }
 

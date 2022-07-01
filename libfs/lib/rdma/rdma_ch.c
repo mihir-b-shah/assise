@@ -343,6 +343,9 @@ inline void poll_cq(struct ibv_cq *cq, struct ibv_wc *wc)
 		if (wc->status == IBV_WC_SUCCESS) {
 
 			//debug_print("trigger completion callback\n");
+      if (wc->wc_flags & IBV_WC_WITH_IMM) {
+        app_cq_event(wc->imm_data);
+      }
 			rc_process_completion(wc);
 		}
 		else {

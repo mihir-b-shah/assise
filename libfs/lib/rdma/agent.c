@@ -6,9 +6,15 @@
 app_conn_cb_fn app_conn_event;
 app_disc_cb_fn app_disc_event;
 app_recv_cb_fn app_recv_event;
+app_cq_cb_fn app_cq_event;
 
 int rdma_initialized = 0;
 char port[10];
+
+void set_cq_cb_fn(app_cq_cb_fn fn)
+{
+  app_cq_event = fn;
+}
 
 //initialize memory region information
 void init_rdma_agent(char *listen_port, struct mr_context *regions,

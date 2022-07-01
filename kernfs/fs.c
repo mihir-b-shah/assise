@@ -24,6 +24,8 @@
 #include "ssd_emulation.h"
 #include "storage/storage.h"
 
+#include <signal.h>
+
 #ifdef DISTRIBUTED
 #include "distributed/peer.h"
 #include "distributed/rpc_interface.h"
@@ -226,6 +228,11 @@ void show_kernfs_stats(void)
 			g_perf_stats.digest_file_tsc / (clock_speed_mhz * 1000.0));
 	printf("- persist    : %.3f ms\n",
 			g_perf_stats.persist_time_tsc / (clock_speed_mhz * 1000.0));
+  for (int i = 0; i<g_max_meta; ++i) {
+    printf("- (i=%d) n_send_wait_m2: %lu, n_send_wait: %lu, n_sends: %lu\n", i, g_perf_stats.n_send_wait_m2[i], g_perf_stats.n_send_wait[i], g_perf_stats.n_sends[i]);
+  }
+  printf("- rcache_send_tsc: %.6f ms\n",
+      g_perf_stats.rcache_send_tsc / (clock_speed_mhz * 1000.0));
 	printf("n_digest        : %lu\n", g_perf_stats.n_digest);
 	printf("n_digest_skipped: %lu (%.1f %%)\n", 
 			g_perf_stats.n_digest_skipped, 
@@ -2095,8 +2102,16 @@ config_t* get_cache_conf()
   return &cache_conf;
 }
 
+void inthandler(int sig)
+{
+  show_kernfs_stats();
+  show_storage_stats();
+}
+
 void init_fs(void)
 {
+  signal(SIGINT, inthandler);
+
   setup_replica_array(&hot_replicas, &hot_backups, &cold_backups);
   printf("setup replica array.\n");
 
@@ -2259,8 +2274,7 @@ void signal_callback(struct app_context *msg)
       }
     }
     assert(i < ctx->n);
-    release_rd_lock();
-    printf("*** Finished N update with sockfd=%d.\n", ctx->conn_ring[i].sockfd);
+    //release_rd_lock();
     return;
   }
 

@@ -73,7 +73,7 @@ MLFS_FLAGS += -DUSE_SSD
 #DEBUG = -g -O0 -Wall
 #DEBUG = -g -Ofast
 #DEBUG = -O3
-DEBUG = -g -O2 -Wall
+DEBUG = -g -O0 -Wall
 
 ########
 #  vpath and compile function for each file

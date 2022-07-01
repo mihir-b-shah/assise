@@ -16,7 +16,7 @@ LD_FLAGS = -lpthread -lm -lrt
 LD_FLAGS_CXX = -lpthread -lrt
 #DEBUG = -g -O0
 #DEBUG = -g -Ofast
-DEBUG = -O3
+DEBUG = -g -O0
 
 ########
 #  Phony targets

@@ -32,6 +32,9 @@ typedef struct mlfs_kernfs_stats {
 	uint64_t digest_inode_tsc;
 	uint64_t digest_file_tsc;
 	uint64_t persist_time_tsc;
+	volatile uint64_t n_sends[g_max_meta];
+  volatile uint64_t n_send_wait[g_max_meta];
+  volatile uint64_t n_send_wait_m2[g_max_meta];
 	uint64_t rcache_send_tsc;
 	uint64_t n_digest;
 	uint64_t n_digest_skipped;

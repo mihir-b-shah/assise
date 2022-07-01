@@ -9,6 +9,7 @@
 
 struct conn_obj {
   struct in_addr addr;
+  size_t idx;
   int sockfd;
   volatile void* rblock_addr[g_max_meta];
 };

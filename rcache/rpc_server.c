@@ -14,6 +14,7 @@
 #include "globals.h"
 
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
@@ -28,9 +29,18 @@ void inthand(int signum)
 	stop = 1;
 }
 
-uint8_t* base = NULL;
+uint8_t* base = (uint8_t*) 0x600000000000;
 size_t MEM_SIZE = 0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+int mapping_ok(uint8_t* mem_base, size_t mem_size)
+{
+  size_t page_size = sysconf(_SC_PAGE_SIZE);
+  uint8_t* arr = calloc((mem_size + page_size) / page_size, sizeof(uint8_t));
+  int res = mincore(mem_base, mem_size, arr);
+  free(arr);
+  return res == -1 && errno == ENOMEM;
+}
 
 struct client_req {
   uint32_t node_num;
@@ -137,7 +147,7 @@ void refresh_appl_buffer(int sockfd)
     buf_cts[sockfd].ct = 0;
   }
 
-  printf("Sending msg.\n");
+  //printf("Sending msg.\n");
   // send the application node its initial buffer.
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
@@ -159,8 +169,7 @@ void signal_callback(struct app_context *msg)
   if (!msg->data) {
     // immediate notification from an application
     uint32_t appl_ip = msg->id;
-    printf("Received msg from ip: %d.%d.%d.%d.\n", appl_ip & 0xff, (appl_ip >> 8) & 0xff,
-      (appl_ip >> 16) & 0xff, (appl_ip >> 24) & 0xff);
+    // printf("Received msg from ip: %d.%d.%d.%d.\n", appl_ip & 0xff, (appl_ip >> 8) & 0xff, (appl_ip >> 16) & 0xff, (appl_ip >> 24) & 0xff);
     refresh_appl_buffer(msg->sockfd);
   }
 
@@ -200,11 +209,15 @@ int main(int argc, char **argv)
   int fd = shm_open("rcache", O_CREAT | O_RDWR, ALLPERMS);
 	if (fd < 0) {
 		fprintf(stderr, "cannot open rcache");
-		exit(-1);
+    return 1;
 	}
 
   ftruncate(fd, MEM_SIZE);
-  base = mmap(NULL, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_POPULATE, fd, 0);
+  if (!mapping_ok(base, MEM_SIZE)) {
+    perror("Memory already taken.\n");
+    return 1;
+  }
+  base = mmap(base, MEM_SIZE, PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0);
 
   blk_init(base, MEM_SIZE);
 
