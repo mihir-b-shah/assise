@@ -5,10 +5,11 @@
 #include <string.h>
 #include <stdint.h>
 #include "utils.h" // rdma
-#include <pthread.h>
 #include <global/global.h>
 
+// this HAS to be a power of 2, not just for bitwise AND, but for wrap-around design.
 #define RING_BUF_SIZE 128
+#define MAX_PRODUCERS 4
 
 struct ring_buf_entry {
   uint8_t ridx;
@@ -20,41 +21,42 @@ struct ring_buf_entry {
 /*
  * Constraints:
  * 1) Never empty when poll() is called.
- * 2) It is MPMC- why not...
- * 3) Performance of this doesn't really matter- it is called per blocking call to 
- *    wakeup on CQ event, and every time we write 400 kB over the network. A little 
- *    latency in the ring buffer is nothing.
- *      -> just acquire a mutex -> no concurrency at all.
+ * 2) It is MPSC.
+ * 3) Perf doesn't really matter - but a good learning experience.
  */
-struct ring_buf {
-  volatile size_t head;
-  volatile size_t tail;
-  volatile size_t n;
+struct __attribute__((packed, aligned(8))) ring_buf {
+  volatile uint32_t head;
+  volatile uint32_t tail;
   volatile struct ring_buf_entry buf[RING_BUF_SIZE];
-  /* network round trips are less than 100 us, waiting for a Linux scheduling cycle by using
-     a blocking lock (milliseconds) is not great. Plus we are on a high core-count processor. */
-  pthread_spinlock_t lock;
 };
 
 static inline void ring_buf_init(struct ring_buf* rb)
 {
   rb->head = 0;
   rb->tail = 0; 
-  rb->n = 0;
-  pthread_spin_init(&(rb->lock), 0);
 }
+
+#define RING_SUB(x,y) ((x)>(y)?((x)-(y)):((x)+(1ULL<<32)-(y)))
 
 static inline void ring_buf_push(struct ring_buf* rb, uint8_t ridx, uintptr_t raddr, uint32_t seqn, uint32_t* blknums)
 { 
-  pthread_spin_lock(&(rb->lock));
-  while (__atomic_load_n(&(rb->n), __ATOMIC_SEQ_CST) == RING_BUF_SIZE) {
-    pthread_spin_unlock(&(rb->lock));
+  while (1) {
+    // rely on aligned, packed, and no member-reordering properties
+    // THIS READS THE TAIL TOO
+    uint64_t snapshot = __atomic_load_n((uint64_t*) &(rb->head), __ATOMIC_SEQ_CST);
+    // little endian.
+    uint64_t snap_tail = snapshot >> 32;
+    uint64_t snap_head = snapshot & 0xffffffffULL;
+
+    if (RING_SUB(snap_tail, snap_head) < RING_BUF_SIZE - MAX_PRODUCERS + 1) {
+      break;
+    }
+
     ibw_cpu_relax();
-    pthread_spin_lock(&(rb->lock));
   }
-  size_t pos = rb->tail++ & (RING_BUF_SIZE-1);
-  __atomic_add_fetch(&(rb->n), 1, __ATOMIC_SEQ_CST);
-  pthread_spin_unlock(&(rb->lock));
+
+  size_t pos = __atomic_fetch_add(&(rb->tail), 1, __ATOMIC_SEQ_CST);
+  pos &= RING_BUF_SIZE-1;
 
   rb->buf[pos].ridx = ridx;
   rb->buf[pos].raddr = raddr;
@@ -65,12 +67,8 @@ static inline void ring_buf_push(struct ring_buf* rb, uint8_t ridx, uintptr_t ra
 
 static inline struct ring_buf_entry ring_buf_poll(struct ring_buf* rb)
 {
-  pthread_spin_lock(&(rb->lock));
-  struct ring_buf_entry entry = rb->buf[rb->head];
-  rb->head++;
-  __atomic_add_fetch(&(rb->n), -1, __ATOMIC_SEQ_CST);
-  pthread_spin_unlock(&(rb->lock));
-  return entry;
+  size_t pos = __atomic_fetch_add(&(rb->head), 1, __ATOMIC_SEQ_CST);
+  return rb->buf[pos & (RING_BUF_SIZE-1)];
 }
 
 #endif

@@ -147,7 +147,7 @@ void refresh_appl_buffer(int sockfd)
     buf_cts[sockfd].ct = 0;
   }
 
-  //printf("Sending msg.\n");
+  printf("Sending msg.\n");
   // send the application node its initial buffer.
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
@@ -158,7 +158,9 @@ void refresh_appl_buffer(int sockfd)
     ((void**) (8+app->data))[i] = blk_alloc();
   }
 
+  printf("Right before send msg.\n");
   MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
+  printf("Right after send msg.\n");
 }
 
 void signal_callback(struct app_context *msg)
