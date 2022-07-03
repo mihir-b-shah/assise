@@ -10,7 +10,7 @@
 
 // this HAS to be a power of 2, not just for bitwise AND, but for wrap-around design.
 #define RING_BUF_SIZE 128
-#define MAX_PRODUCERS 2
+#define MAX_PRODUCERS 4
 
 struct ring_buf_entry {
   uint32_t seqn;
@@ -42,31 +42,19 @@ static void ring_buf_init(struct ring_buf* rb)
 
 static void ring_buf_push(struct ring_buf* rb, uint32_t seqn)
 {
-  size_t pos;
-   
+  uint32_t pos = __atomic_fetch_add(&(rb->tail), 1, __ATOMIC_SEQ_CST);
+  // wait until my position is available.
+  
   while (1) {
-    // rely on aligned, packed, and no member-reordering properties
-    uint64_t snapshot = __atomic_load_n(&(rb->snapshot), __ATOMIC_SEQ_CST);
-    // little endian.
-    uint64_t snap_head = snapshot >> 32;
-    uint64_t snap_tail = snapshot & 0xffffffffULL;
-
-    if (RING_SUB(snap_tail, snap_head) < RING_BUF_SIZE - MAX_PRODUCERS + 1) {
-      uint32_t exp = snap_tail;
-      if (__atomic_compare_exchange_n(&(rb->tail), &exp, snap_tail+1, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
-        pos = snap_tail;
-        break;
-      }
+    if (RING_SUB(pos, __atomic_load_n(&(rb->head), __ATOMIC_SEQ_CST)) < RING_BUF_SIZE) {
+      break;
     }
 
     asm volatile("pause\n": : :"memory");
   }
 
   pos &= RING_BUF_SIZE-1;
-
   rb->buf[pos].seqn = seqn;
-    
-  asm volatile("sfence\n": : :"memory");
 }
 
 static struct ring_buf_entry ring_buf_poll(struct ring_buf* rb)
