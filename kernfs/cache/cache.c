@@ -3,7 +3,6 @@
 #include <conf/conf.h>
 #include <global/global.h>
 #include <remote_index.h>
-#include "ring_buf.h"
 #include <io/block_io.h>
 #include <io/device.h>
 #include <fs.h>
@@ -20,7 +19,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include "agent.h"
+#include <ds/khash.h>
 
 #define MR_RCACHE 0
 
@@ -29,9 +28,17 @@
 static uint32_t blk_queue[g_max_meta * g_max_sge];
 static volatile uint32_t blk_queue_pos = 0;
 static pthread_spinlock_t lock;
+static pthread_spinlock_t map_lock;
 
-static uint32_t seqn = 0;
-static struct ring_buf ringbuf;
+struct seqn_state_t {
+  uint8_t ridx;
+  uintptr_t raddr;
+  uint32_t blknums[g_max_sge];
+};
+
+static volatile uint32_t seqn = 0;
+KHASH_MAP_INIT_INT(seqn_map_t, struct seqn_state_t)
+static khash_t(seqn_map_t) *seqn_states;
 
 static int shm_fd;
 static const char* shm_path = "cache_index";
@@ -39,21 +46,28 @@ static uint64_t* map_base;
 
 void update_index(uint32_t imm)
 {
-  struct ring_buf_entry e = ring_buf_poll(&ringbuf);
-  // check if it is not up-to-date.
-  assert(e.seqn = imm);
+  int present;
+  pthread_spin_lock(&map_lock);
+  khint_t k = kh_get(seqn_map_t, seqn_states, imm);
+  assert(k != kh_end(seqn_states));
+  
+  struct seqn_state_t e = kh_value(seqn_states, k);
+  kh_del(seqn_map_t, seqn_states, k);
+  pthread_spin_unlock(&map_lock);
 
   for (size_t i = 0; i<g_max_sge; ++i) {
-    write_rindex_entry(&map_base[e.blknums[i]], e.ridx, e.blknums[i], (uintptr_t) (e.raddr + g_block_size_bytes * i));
+    write_rindex_entry(&map_base[e.blknums[i]], e.ridx, (uintptr_t) (e.raddr + g_block_size_bytes * i));
   }
 }
 
 void init_cache()
 {
   pthread_spin_init(&lock, 0);
+  pthread_spin_init(&map_lock, 0);
+
   shm_fd = shm_open(shm_path, O_CREAT | O_RDWR, ALLPERMS);
 	if (shm_fd < 0) {
-		fprintf(stderr, "cannot open ssd bitmap %s\n", shm_path);
+		fprintf(stderr, "cannot open cache index %s\n", shm_path);
 		exit(-1);
 	}
   
@@ -61,11 +75,11 @@ void init_cache()
   ftruncate(shm_fd, shm_size);
   map_base = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	if (map_base == MAP_FAILED) {
-		perror("cannot map ssd_map file");
+		perror("cannot map cache_index file");
 		exit(-1);
 	}
 
-  ring_buf_init(&ringbuf);
+  seqn_states = kh_init(seqn_map_t);
   set_cq_cb_fn(update_index);
 }
 
@@ -123,7 +137,15 @@ void send_to_rcache(uint64_t block)
     }
     
     // pass in offset in cache node array, not the sockfd (utterly worthless here)
-    ring_buf_push(&ringbuf, dst_node->idx, metas[i]->addr, my_seqn, &blk_queue[i * g_max_sge]);
+    int absent;
+    pthread_spin_lock(&map_lock);
+    khint_t k = kh_put(seqn_map_t, seqn_states, my_seqn, &absent);
+    kh_value(seqn_states, k).ridx = dst_node->idx;
+    kh_value(seqn_states, k).raddr = metas[i]->addr;
+    for (size_t j = 0; j<g_max_sge; ++j) {
+      kh_value(seqn_states, k).blknums[j] = blk_queue[i * g_max_sge + j];
+    }
+    pthread_spin_unlock(&map_lock);
   }
 
   IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(dst_node->sockfd, metas[0], MR_NVM_SHARED, MR_RCACHE);

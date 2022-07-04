@@ -38,7 +38,6 @@ static uint32_t masks[NUM_MASKS] = {7, 11, 13, 14, 19, 21, 22, 25, 26, 28};
 static uint32_t masks[NUM_MASKS] = {3, 5, 6};
 #endif
 
-
 // implement hash ring partitioning
 static int get_index(uint64_t hash, int n)
 {

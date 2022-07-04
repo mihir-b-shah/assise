@@ -15,6 +15,7 @@ struct rcache_req {
 extern uint32_t ip_int;
 
 void init_rcache(void);
+void init_fetcher_helper(void);
 void init_ssd_q(void);
 
 void enq_ssd_req(struct rcache_req req);

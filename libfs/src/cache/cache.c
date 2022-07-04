@@ -43,6 +43,7 @@ static int decide_ask_remote(struct rcache_req* req)
 void init_rcache()
 {
   init_ssd_q();
+  init_fetcher_helper();
 }
 
 /*
