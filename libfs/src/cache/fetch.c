@@ -54,7 +54,7 @@ enum fetch_res fetch_remote(struct rcache_req* req)
    * This is a 64-bit atomic read
    * However, this is NOT synchronized with flow control- 
    * We could get the "time to release resource" message from the cache, and then
-   *  mark the entry in the cache_index as untaken (sockfd=255, raddr=0)
+   *  mark the entry in the cache_index as untaken (ridx=0, raddr=0)
    *  Meanwhile, libfs launches a read before marked. Simultaneously, I ACK the request.
    *  Now, the cache is free to kill my data when it gets my message, and my read reads trash.
    *
@@ -63,8 +63,12 @@ enum fetch_res fetch_remote(struct rcache_req* req)
    *  guaranteed that kernfs has NOT sent an ACK yet, and our read was safe. Else (very low probability),
    *  out of caution, trash the read and use the SSD.
    *
-   *  How to guarantee the time guarantee? Will an sfence do the trick?
+   *  How to guarantee the time guarantee?
+   *  https://blog.the-pans.com/std-atomic-from-bottom-up/
    *
+   *  I think an sfence is sufficient, and forcing a read to happen for the second check
+   *  (otherwise compiler may use the old read).
+   *  note, mfence does the globally-available property.
    */
 
   struct rindex_entry entry = read_rindex_entry(&map_base[req->block]);
