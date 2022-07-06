@@ -13,12 +13,6 @@
 #include <assert.h>
 #include "utils.h" // rdma
 #include <pthread.h>
-#include <sys/shm.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-#include <stdio.h>
 #include <ds/khash.h>
 
 #define MR_RCACHE 0
@@ -40,8 +34,6 @@ static volatile uint32_t seqn = 0;
 KHASH_MAP_INIT_INT(seqn_map_t, struct seqn_state_t)
 static khash_t(seqn_map_t) *seqn_states;
 
-static int shm_fd;
-static const char* shm_path = "cache_index";
 static uint64_t* map_base;
 
 void update_index(uint32_t imm)
@@ -65,19 +57,7 @@ void init_cache()
   pthread_spin_init(&lock, 0);
   pthread_spin_init(&map_lock, 0);
 
-  shm_fd = shm_open(shm_path, O_CREAT | O_RDWR, ALLPERMS);
-	if (shm_fd < 0) {
-		fprintf(stderr, "cannot open cache index %s\n", shm_path);
-		exit(-1);
-	}
-  
-  size_t shm_size = sizeof(uint64_t) * ((dev_size[g_root_dev] + g_block_size_bytes) >> g_block_size_shift);
-  ftruncate(shm_fd, shm_size);
-  map_base = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-	if (map_base == MAP_FAILED) {
-		perror("cannot map cache_index file");
-		exit(-1);
-	}
+  map_base = map_rindex();
 
   seqn_states = kh_init(seqn_map_t);
   set_cq_cb_fn(update_index);

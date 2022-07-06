@@ -586,6 +586,10 @@ void rc_process_completion(struct ibv_wc *wc)
 		debug_print("COMPLETION --> (SEND WR #%lu) [qp_num %u]\n", wc->wr_id, id->qp->qp_num);
 		ctx->last_send_compl = wc->wr_id;
 	}
+  else if(wc->opcode == IBV_WC_RDMA_READ) {
+		debug_print("COMPLETION --> (SEND WR #%lu) [qp_num %u]\n", wc->wr_id, id->qp->qp_num);
+		ctx->last_send_compl = wc->wr_id;
+  }
 	else if(wc->opcode == IBV_WC_SEND) {
 		debug_print("COMPLETION --> (SEND WR #%lu) [qp_num %u]\n", wc->wr_id, id->qp->qp_num);
 		ctx->last_send_compl = wc->wr_id;

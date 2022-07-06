@@ -34,6 +34,10 @@ void spin_until_tv(time_t ref_time, uint32_t offset)
 void run_oltp(int fd, char* buf)
 {
   for (int i = 0; i<N_DUTY_CYCLE; ++i) {
+    if (i % 10000 == 0) {
+      printf("Completed %d\n", i);
+    }
+
     uint32_t blk_offs = 4096 * pl_rand();
 
     if (blk_offs + WR_SIZE < WS_SIZE) {
