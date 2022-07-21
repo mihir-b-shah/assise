@@ -4,6 +4,7 @@
 
 #include "conf_client.h"
 #include "rw_spinlock.h"
+#include <time.h>
 #include <stdint.h>
 #include <global/global.h>
 
@@ -12,6 +13,7 @@ struct conn_obj {
   size_t idx;
   int sockfd;
   volatile void* rblock_addr[g_max_meta];
+  struct timespec ts;
 };
 
 struct conn_ctx {

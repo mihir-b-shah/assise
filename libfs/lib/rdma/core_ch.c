@@ -46,6 +46,10 @@ int mp_channel_rpid(int sockfd)
 		return -1;
 }
 
+unsigned long mp_channel_ipaddr(int sockfd)
+{
+  return s_conn_ctx[sockfd]->id->route.addr.dst_storage.sin_addr.s_addr;
+}
 
 char* mp_channel_ip(int sockfd)
 {

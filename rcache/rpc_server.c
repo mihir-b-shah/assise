@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "agent.h"
+#include "core_ch.h"
 #include "conf_client.h"
 #include "globals.h"
 
@@ -61,8 +62,6 @@ static uint64_t make_block_num(uint32_t node, uint64_t block)
 
 #define MR_RCACHE 0
 #define MR_DRAM_CACHE 2
-
-#define BLOCK_DEPTH 10
 
 static uint64_t hit_ctr = 0;
 static uint64_t miss_ctr = 0;
@@ -131,50 +130,56 @@ void handle_segfault(int sig)
   abort();
 }
 
+// prevent false-sharing.
 struct fshare_safe_u64 {
-  uint32_t ct;
-  char junk[60];
+  volatile uint32_t ct;
+  char junk[64-sizeof(ct)];
 };
-struct fshare_safe_u64 buf_cts[MAX_CONNECTIONS] = {{BLOCK_DEPTH-1, {0}}};
+struct fshare_safe_u64 buf_cts[MAX_CONNECTIONS] = {{NUM_ALLOC-1, {0}}};
 
-void refresh_appl_buffer(int sockfd)
+
+// W + 2d
+void refresh_appl_buffer(int sockfd, int force)
 {
   static uint32_t seqn = 2;
 
-  if (++buf_cts[sockfd].ct < BLOCK_DEPTH) {
+  if (!force && ++buf_cts[sockfd].ct < NUM_ALLOC) {
     return;
   } else {
+    assert(!force || buf_cts[sockfd].ct == 0);
     buf_cts[sockfd].ct = 0;
   }
 
-  printf("Sending msg.\n");
   // send the application node its initial buffer.
   struct app_context* app;
   int buffer_id = MP_ACQUIRE_BUFFER(sockfd, &app);
   app->id = __atomic_fetch_add(&seqn, 1, __ATOMIC_SEQ_CST);
   app->data[0] = 'N';
+  
+  struct timespec t;
+  assert(clock_gettime(CLOCK_REALTIME, &t) == 0);
+  ((uint64_t*) (8+app->data))[0] = t.tv_sec;
+  ((uint64_t*) (8+app->data))[1] = t.tv_nsec;
 
-  for (size_t i = 0; i<BLOCK_DEPTH; ++i) {
-    ((void**) (8+app->data))[i] = blk_alloc();
+  for (size_t i = 0; i<NUM_ALLOC; ++i) {
+    ((void**) (24+app->data))[i] = blk_alloc(sockfd);
   }
 
-  printf("Right before send msg.\n");
   MP_SEND_MSG_ASYNC(sockfd, buffer_id, 0);
-  printf("Right after send msg.\n");
 }
 
 void signal_callback(struct app_context *msg)
 {
   uint64_t stime = asm_rdtscp();
-  //pthread_mutex_lock(&lock);
 
+  // immediate notification from an application, or refresh notification
   if (!msg->data) {
-    // immediate notification from an application
-    uint32_t appl_ip = msg->id;
-    // printf("Received msg from ip: %d.%d.%d.%d.\n", appl_ip & 0xff, (appl_ip >> 8) & 0xff, (appl_ip >> 16) & 0xff, (appl_ip >> 24) & 0xff);
-    refresh_appl_buffer(msg->sockfd);
+    blk_free(msg->sockfd, (msg->id) >> 8);
+    refresh_appl_buffer(msg->sockfd, false);
+  } else if (msg->data[0] == 'R') {
+    refresh_appl_buffer(msg->sockfd, true);
   }
-
+  
   //pthread_mutex_unlock(&lock);
 }
 
@@ -202,7 +207,7 @@ int main(int argc, char **argv)
 	}
 
 	portno = argv[1];
-  MEM_SIZE = BLK_SIZE * strtoull(argv[2], NULL, 16);
+  MEM_SIZE = ALLOC_SIZE * strtoull(argv[2], NULL, 16);
   
   conf_cmd_t ccmd;
   init_cmd(&ccmd);

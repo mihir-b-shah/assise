@@ -5,52 +5,93 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
+#include <pthread.h>
 
-static volatile uint8_t* free_lhead = NULL;
-static uint8_t* mem_base = NULL;
-static size_t n_blocks = 0;
+#include "globals.h"
 
-static void set_lhead(uint8_t* p)
+#define META_NULL 0xffffffffU
+struct meta_entry {
+  volatile uint32_t next;
+};
+
+struct alloc {
+  struct block {
+    // TODO: add tag
+    volatile uint8_t bytes[BLK_SIZE];
+  };
+  volatile struct block blocks[MAX_SGE];
+};
+
+static struct alloc* mem;
+static struct meta_entry* meta;
+static volatile size_t head;
+static volatile size_t tail;
+static size_t n_blocks;
+static size_t n_blocks_shift;
+static pthread_spin_lock lock;
+
+// for simplicity, assume no sockfd disconnections.
+static volatile uint32_t alloc_cts[MAX_CONNECTIONS];
+
+static inline int is_pow_2(size_t v)
 {
-  __atomic_store_n(&free_lhead, p, __ATOMIC_SEQ_CST);
+  return (v & -v) == v;
 }
 
-static volatile uint8_t* get_lhead()
+void blk_init(uint8_t* mem_base, size_t mem_size)
 {
-  return __atomic_load_n(&free_lhead, __ATOMIC_SEQ_CST);
-}
+  n_blocks = mem_size / BLK_SIZE;
+  assert(is_pow_2(n_blocks));
+  n_blocks_shift = __builtin_ctz(n_blocks);
+  mem = (struct alloc*) mem_base;
+  head = 0;
+  tail = n_blocks - 1;
+  meta = calloc(n_blocks, sizeof(struct meta_entry));
+  pthread_spin_init(&lock, 0);
 
-void blk_init(uint8_t* mem_base_, size_t mem_size_)
-{
-  n_blocks = mem_size_ / BLK_SIZE;
-  mem_base = mem_base_;
-
-  set_lhead(mem_base);
-
-  // setup the free list
-  // definition of mmap- the last pointer is NULL, and mmap has already set the last block to 0.
-  for (size_t i = 0; i<n_blocks-1; ++i) {
-    uint64_t* view = (uint64_t*) &mem_base[BLK_SIZE*i];
-    *view = (uint64_t) &mem_base[BLK_SIZE*(i+1)];
+  for (size_t i = 0; i<n_blocks; ++i) {
+    meta[i].next = i+1;
   }
+  meta[n_blocks-1].next = META_NULL;
+
+  assert(sizeof(alloc) == ALLOC_SIZE);
 }
 
-uint8_t* blk_alloc(void)
+uint8_t* blk_alloc(int sockfd)
 {
-  if (!get_lhead()) {
-    assert(0 && "Could not alloc a block.\n");
-    return NULL;
+  uint32_t ip_id = mp_channel_ipaddr(sockfd);
+
+  pthread_spin_lock(&lock);
+  // invariant: no one points to head.
+  struct alloc* ret = &mem[head];
+  /* TODO
+  for (size_t i = 0; i<MAX_SGE; ++i) {
+    // an atomic operation.
+    ret->blocks[i].tag = (((uint64_t) ip_id) << 32) | alloc_cts[sockfd];
   }
+  */
+  uint32_t old_head = head;
+  head = meta[head].next;
+  /* Invariant- we should always have one block left, to simplify things. 
+   * If there is ONLY one left, assert we're dead. This ensures head and tail
+   * both point to something. */
+  assert(head != META_NULL);
+  meta[old_head].next = META_NULL;
 
-  volatile uint8_t* to_give = get_lhead();
-  volatile uint64_t* view = (volatile uint64_t*) to_give;
-  set_lhead((uint8_t*) *view);
-  return (uint8_t*) to_give;
+  /* TODO alloc_cts[sockfd] += 1; */
+  pthread_spin_unlock(&lock);
+  /* no need for mfence- pthread spin enter-exit uses lock prefix,
+   * which on x86 is a full fence, ensuring these writes are seen by all cores */
+  return (uint8_t*) ret;
 }
 
-void blk_free(uint8_t* ptr)
+void blk_free(uint32_t blk_num)
 {
-  uint64_t* view = (uint64_t*) ptr;
-  *view = (uint64_t) get_lhead();
-  set_lhead(ptr);
+  pthread_spin_lock(&lock);
+
+  assert(meta[tail].next == META_NULL);
+  meta[tail].next = blk_num;
+  tail = blk_num;
+
+  pthread_spin_unlock(&lock);
 }

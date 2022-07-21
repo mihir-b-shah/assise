@@ -35,6 +35,7 @@ int mp_channel_count();
 int mp_next_channel(int cur);
 int mp_channel_meta(int sockfd);
 int mp_channel_rpid(int sockfd);
+struct sockaddr_in mp_channel_ipaddr(int sockfd);
 char* mp_channel_ip(int sockfd);
 
 // -- private --

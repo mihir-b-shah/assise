@@ -14,15 +14,21 @@
 #include "utils.h" // rdma
 #include <pthread.h>
 #include <ds/khash.h>
+#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define MR_RCACHE 0
 
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
+#define MAX_ALLOWED_MbPS 100000
+
 static uint32_t blk_queue[g_max_meta * g_max_sge];
 static volatile uint32_t blk_queue_pos = 0;
 static pthread_spinlock_t lock;
 static pthread_spinlock_t map_lock;
+static volatile uint8_t seqn = 0;
 
 struct seqn_state_t {
   uint8_t ridx;
@@ -30,7 +36,6 @@ struct seqn_state_t {
   uint32_t blknums[g_max_sge];
 };
 
-static volatile uint32_t seqn = 0;
 KHASH_MAP_INIT_INT(seqn_map_t, struct seqn_state_t)
 static khash_t(seqn_map_t) *seqn_states;
 
@@ -61,6 +66,17 @@ void init_cache()
 
   seqn_states = kh_init(seqn_map_t);
   set_cq_cb_fn(update_index);
+  
+  // check network speed for time-to-not-use calculations
+  char buf[101];
+  FILE* f = fopen("/sys/class/net/ib0/speed", "r");
+  fread(buf, ARR_SIZE(buf)-1, 1, f);
+  assert(feof(f));
+  fclose(f);
+  // our calculations assume <= 100 Gbps link
+  assert(atoi(buf) <= MAX_ALLOWED_MbPS);
+
+  double lowbound_time_per_alloc = ((double) (g_block_size_bytes * g_max_sge * g_max_meta)) / (MAX_ALLOWED_MbPS * 125000);
 }
 
 // notice we deliberately de-queue from the evict list in blocks of 960 (instead of 1024).
@@ -85,6 +101,7 @@ void send_to_rcache(uint64_t block)
 
   volatile void* rblock_addr[g_max_meta] = {NULL};
   rdma_meta_t* metas[1+g_max_meta] = {NULL};
+  struct timespec ts;
 
   for (size_t i = 0; i<g_max_meta; ++i) {
     //printf("Reading from %p\n", &(dst_node->rblock_addr[i]));
@@ -100,8 +117,14 @@ void send_to_rcache(uint64_t block)
     metas[i] = (rdma_meta_t*) malloc(sizeof(rdma_meta_t) + g_max_sge * sizeof(struct ibv_sge));
   }
 
+  // after spinning for the first ones, no need to exchange.
+  ts.tv_nsec = __atomic_exchange_n(&(dst_node->ts.tv_nsec), 0, __ATOMIC_SEQ_CST);
+  ts.tv_sec = __atomic_exchange_n(&(dst_node->ts.tv_sec), 0, __ATOMIC_SEQ_CST);
+
   for (size_t i = 0; i<g_max_meta; ++i) {
-    uint32_t my_seqn = __atomic_add_fetch(&seqn, 1, __ATOMIC_SEQ_CST);
+    uint32_t my_seqn = compress_ptr(rblock_addr[i]);
+    assert((my_seqn & 0xffffff) == my_seqn);
+    my_seqn = (my_seqn << 8) | __atomic_fetch_add(&seqn, 1, __ATOMIC_SEQ_CST);
 
     metas[i]->addr = (uintptr_t) rblock_addr[i];
     metas[i]->imm = my_seqn;
@@ -127,6 +150,8 @@ void send_to_rcache(uint64_t block)
     }
     pthread_spin_unlock(&map_lock);
   }
+
+
 
   IBV_WRAPPER_WRITE_WITH_IMM_ASYNC(dst_node->sockfd, metas[0], MR_NVM_SHARED, MR_RCACHE);
 

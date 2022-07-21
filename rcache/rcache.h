@@ -5,7 +5,10 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define BLK_SIZE (4096*96)
+#define MAX_SGE 96
+#define BLK_SIZE 4096
+#define NUM_ALLOC 10
+#define ALLOC_SIZE (4096*96)
 
 // in blk_alloc.c
 void blk_init(uint8_t* mem_base_, size_t mem_size_);

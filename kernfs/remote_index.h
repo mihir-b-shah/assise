@@ -52,10 +52,15 @@ struct rindex_entry {
   uintptr_t raddr[CHUNKS];
 };
 
+static inline uint32_t compress_ptr(uintptr_t ptr)
+{
+  return (ptr - (uintptr_t) REMOTE_BASE_ADDR) / (g_block_size_bytes * g_max_sge);
+}
+
 static inline void write_rindex_entry(uint64_t* entry, uint8_t ridx, uintptr_t ptr)
 {
   uint64_t _ridx = ridx;
-  uint64_t _ptr = (ptr - (uintptr_t) REMOTE_BASE_ADDR) / (g_block_size_bytes * g_max_sge);
+  uint64_t _ptr = compress_ptr(ptr);
   assert(_ridx >= 0 && _ridx <= 0xff &&
          _ptr >= 0 && _ptr <= 0xffffff);
   *entry = (_ridx << 24) | (_ptr << 0);

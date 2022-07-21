@@ -2261,13 +2261,16 @@ void signal_callback(struct app_context *msg)
   if (msg->data && msg->data[0] == 'N') {
     // a next-ptr message from the remote cache node.
     struct conn_ctx* ctx = update_cache_conf();
+    __atomic_store_n(&(ctx->ts.tv_sec), ((uint64_t*) (8+msg->data))[0], __ATOMIC_SEQ_CST);
+    __atomic_store_n(&(ctx->ts.tv_nsec), ((uint64_t*) (8+msg->data))[1], __ATOMIC_SEQ_CST);
+
     size_t i;
     for (i = 0; ctx->n; ++i) {
       if (ctx->conn_ring[i].sockfd == msg->sockfd) {
         // reverse order to ensure separation
         for (int j = g_max_meta-1; j>=0; --j) {
           __atomic_store_n(&(ctx->conn_ring[i].rblock_addr[j]), 
-            ((void**) (8+msg->data))[j], __ATOMIC_SEQ_CST);
+            ((void**) (24+msg->data))[j], __ATOMIC_SEQ_CST);
           //printf("Wrote to %p\n", &(ctx->conn_ring[i].rblock_addr[j]));
         }
         break;
