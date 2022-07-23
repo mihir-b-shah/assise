@@ -1,11 +1,13 @@
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <time.h>
 
-#define BUCKET_TS_INTV_USECS 20000
-#define LOG_SIZE 1024
+#define BUCKET_TS_INTV_USECS 15000
+#define LOG_SIZE 2048
 #define RING_LEN 32
   
 enum alloc_entry_type {
@@ -21,7 +23,6 @@ struct __attribute__((packed, aligned(4))) alloc_entry {
 struct alloc_log {
   struct alloc_entry blocks[LOG_SIZE];
   size_t pos;
-  struct alloc_log* prev;
 };
 
 union head_info {
@@ -34,7 +35,6 @@ union head_info {
 
 struct bucket_ring {
   struct alloc_log* buckets[RING_LEN];
-  pthread_spinlock_t locks[RING_LEN];
   uint64_t head;
 };
 
@@ -46,10 +46,8 @@ static inline uint64_t to_usecs(struct timespec ts)
 void bucket_ring_init(struct bucket_ring* ring, struct timespec ts)
 {
   for (size_t i = 0; i<RING_LEN; ++i) {
-    pthread_spin_init(&(ring->locks[i]), 0);
     struct alloc_log* log = malloc(sizeof(struct alloc_log));
     log->pos = 0;
-    log->prev = NULL;
     ring->buckets[i] = log;
   }
   
@@ -65,21 +63,14 @@ static inline void bucket_ring_append(struct bucket_ring* ring, uint64_t ts, uin
   info.bits = __atomic_load_n(&(ring->head), __ATOMIC_SEQ_CST);
   size_t rpos = (((ts - info.ts_usecs) / BUCKET_TS_INTV_USECS) + info.head_idx) & (RING_LEN-1);
 
-  pthread_spin_lock(&(ring->locks[rpos]));
   struct alloc_log* log = ring->buckets[rpos];
+  size_t pos = __atomic_fetch_add(&(log->pos), 1, __ATOMIC_SEQ_CST);
 
-  if (log->pos == LOG_SIZE) {
-    struct alloc_log* new_log = malloc(sizeof(struct alloc_log));
-    new_log->pos = 0;
-    new_log->prev = log;
-    ring->buckets[rpos] = new_log;
-    log = new_log; 
-  }
+  assert(pos < LOG_SIZE);
 
-  struct alloc_entry* entry = &(log->blocks[log->pos++]);
+  struct alloc_entry* entry = &(log->blocks[pos]);
   entry->type = type;
   entry->alloc_num = alloc_num;
-  pthread_spin_unlock(&(ring->locks[rpos]));
 }
 
 void bucket_ring_register(struct bucket_ring* ring, uint64_t ts, uint32_t alloc_num)
@@ -108,46 +99,97 @@ void bucket_ring_revoke(struct bucket_ring* ring, uint64_t ts_before)
     union head_info info;
     info.bits = __atomic_load_n(&(ring->head), __ATOMIC_SEQ_CST);
 
-    if (info.ts_usecs + BUCKET_TS_INTV_USECS < ts_before) {
-      pthread_spin_lock(&(ring->locks[info.head_idx]));
-      struct alloc_log* log = ring->buckets[info.head_idx];
-
-      while (log != NULL) {
-        if (log->pos > 0) {
-          qsort(log->blocks, log->pos, sizeof(struct alloc_entry), cmp_alloc_entry);
-
-          size_t lpos = 1;
-          assert(log->blocks[0].type == REGISTER);
-          while (lpos < LOG_SIZE) {
-            if (log->blocks[lpos].type == RETURN && log->blocks[lpos-1].type == REGISTER) {
-              lpos += 2;
-            } else if (log->blocks[lpos].type == REGISTER) {
-              // unmatched, we need to kill it ourself.
-              lpos += 1;
-            } else {
-              assert(0 && "Insufficient pattern match.");
-            }
-          }
-          log->pos = 0;
-        }
-        
-        struct alloc_log* prev = log->prev;
-        if (log != ring->buckets[info.head_idx]) {
-          free(log);
-        } else {
-          log->prev = NULL;
-        }
-        log = prev;
-      }
-      
-      pthread_spin_unlock(&(ring->locks[info.head_idx]));
-      info.ts_usecs += BUCKET_TS_INTV_USECS;
-      info.head_idx = (info.head_idx + 1) & (RING_LEN-1);
-      __atomic_store_n(&(ring->head), info.bits, __ATOMIC_SEQ_CST);
-
-    } else {
+    if (info.ts_usecs + BUCKET_TS_INTV_USECS >= ts_before) {
       break;
     }
+
+    struct alloc_log* log = ring->buckets[info.head_idx];
+
+    if (log->pos > 0) {
+      qsort(log->blocks, log->pos, sizeof(struct alloc_entry), cmp_alloc_entry);
+
+      size_t lpos = 1;
+      assert(log->blocks[0].type == REGISTER);
+      while (lpos < log->pos) {
+        if (log->blocks[lpos].type == RETURN && log->blocks[lpos-1].type == REGISTER) {
+          lpos += 2;
+        } else if (log->blocks[lpos].type == REGISTER) {
+          printf("Kill lpos: %lu\n", lpos-1);
+          // unmatched, we need to kill it ourself.
+          lpos += 1;
+        } else {
+          assert(0 && "Insufficient pattern match.");
+        }
+      }
+
+      if (log->blocks[LOG_SIZE-1].type == REGISTER) {
+        //printf("Kill lpos: %lu\n", LOG_SIZE-1);
+      }
+
+      log->pos = 0;
+    }
+    
+    info.ts_usecs += BUCKET_TS_INTV_USECS;
+    info.head_idx = (info.head_idx + 1) & (RING_LEN-1);
+    __atomic_store_n(&(ring->head), info.bits, __ATOMIC_SEQ_CST);
+  }
+}
+
+struct bucket_ring m_ring;
+
+void* revoker(void* arg)
+{
+  while (1) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    bucket_ring_revoke(&m_ring, to_usecs(ts));
+  }
+  return NULL;
+}
+
+int* rands;
+
+void* appender(void* arg)
+{
+  static uint32_t ctr = 0;
+
+  while (1) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    bucket_ring_register(&m_ring, to_usecs(ts), ctr);
+    if (rands[ctr & (LOG_SIZE-1)]) {
+      bucket_ring_return(&m_ring, to_usecs(ts), ctr);
+    }
+    ++ctr;
+
+    struct timespec mts_start, mts_check;
+    clock_gettime(CLOCK_MONOTONIC, &mts_start);
+    while (1) {
+      clock_gettime(CLOCK_MONOTONIC, &mts_check);
+      if (to_usecs(mts_check) - to_usecs(mts_start) >= 64) {
+        break;
+      }
+    }
+  }
+  return NULL;
+}
+
+int main()
+{
+  srand(time(NULL));
+  rands = malloc(sizeof(int) * LOG_SIZE);
+  for (size_t i = 0; i<LOG_SIZE; ++i) {
+    rands[i] = rand() % 2;
   }
 
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  bucket_ring_init(&m_ring, ts);
+
+  pthread_t appendthr, revokethr;
+  pthread_create(&appendthr, NULL, appender, NULL);
+  pthread_create(&revokethr, NULL, revoker, NULL);
+
+  while (1) {}
 }
